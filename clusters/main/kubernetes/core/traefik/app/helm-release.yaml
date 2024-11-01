@@ -45,7 +45,7 @@ spec:
     defaultCertificate: cluster-cert
     service:
       main:
-        type: LoadBalancer
+        type: ClusterIP
       tcp:
         loadBalancerIP: ${TRAEFIK_IP}
         externalTrafficPolicy: Local
