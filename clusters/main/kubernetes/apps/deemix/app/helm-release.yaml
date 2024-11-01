@@ -37,7 +37,7 @@ spec:
           readOnly: false
       downloads:
         enabled: true
-        mountPath: /downloads
+        mountPath: /balazs
         path: /mnt/main/Music/Balazs        
         server: 192.168.1.49
         type: nfs
