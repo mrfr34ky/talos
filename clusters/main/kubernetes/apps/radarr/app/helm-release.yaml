@@ -1,0 +1,65 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: radarr
+  namespace: radarr
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: radarr
+      version: 23.10.1
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    persistence:
+      config:
+          enabled: true
+          mountPath: /config
+          readOnly: false
+      films:
+        enabled: true
+        path: /mnt/main/Videos/Films
+        mountPath: /Films
+        server: 192.168.1.49
+        type: nfs     
+
+    metrics:
+      main:
+        enabled: false
+    workload:
+      exportarr:
+        enabled: false
+    ingress:
+      main:
+        enabled: true
+        integrations:
+          traefik:
+            enabled: true
+          certManager:
+            enabled: true
+            certificateIssuer: cert
+        hosts:
+          - host: radarr6.${BASE_DOMAIN}
+            paths:
+              - path: /
+                pathType: Prefix
+        tls:
+          - hosts:
+              - radarr6.${BASE_DOMAIN}
+            clusterIssuer: cluster-cert     

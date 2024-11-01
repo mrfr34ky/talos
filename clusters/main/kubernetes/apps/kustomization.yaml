@@ -2,3 +2,12 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - kubernetes-dashboard/ks.yaml
+  - deemix/ks.yaml
+  - deemix2/ks.yaml
+  - metube/ks.yaml
+  - overseerr/ks.yaml
+  - prowlarr/ks.yaml
+  - qbittorrent/ks.yaml
+  - radarr/ks.yaml
+  - sonarr/ks.yaml
+  - syncthing/ks.yaml

@@ -1,0 +1,78 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: metube
+  namespace: metube
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: metube
+      version: 14.7.2
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+  releaseName: metube
+  values:
+    credentials:
+#      s3:
+#        type: s3
+#        url: "${S3URL}"
+#        bucket: "${S3PREFIX}-metube"
+#        accessKey: "${S3ID}"
+#        secretKey: "${S3KEY}"
+#        encrKey: "${S3KEY}" 
+    persistence:
+#      config:
+#        volsync:
+#          - name: b2
+#            type: restic
+#            credentials: s3
+#            dest:
+#              enabled: true
+#              accessModes:
+#                - ReadWriteOnce
+#              cacheCapacity: 10Gi
+#            src:
+#             enabled: true
+#              cacheCapacity: 10Gi
+#      backup:
+#        enabled: true
+#        mountPath: /
+#        volsync:
+#          - name: b2
+#           type: restic
+#            credentials: s3
+#           dest:
+#              accessModes:
+#               - ReadWriteOnce
+#              cacheCapacity: 10Gi
+#              enabled: true
+#            src:
+#              enabled: true
+#              cacheCapacity: 10Gi        
+      downloads:
+        enabled: true
+        path: /mnt/main/Videos/downloads
+        mountPath: /downloads
+        server: 192.168.1.49
+        type: nfs
+    ingress:    
+      main:
+        enabled: true
+        integrations:
+          traefik:
+            enabled: true
+          certManager:
+            enabled: true
+            certificateIssuer: cert
+        hosts:
+          - host: metube6.${BASE_DOMAIN}
+            paths:
+              - path: /
+                pathType: Prefix
+        tls:
+          - hosts:
+              - metube6.${BASE_DOMAIN}
+            clusterIssuer: cluster-cert
