@@ -1,0 +1,13 @@
+age.agekey
+^clustertool.exe
+^clustertool*
+^clustertool
+*clustertool.exe
+clustertool.exe
+clustertool
+sopssecret.yaml
+sopssecret*
+*sopssecret*
+helm.exe
+kubectl.exe
+ssh-public-key.txt
