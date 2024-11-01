@@ -22,7 +22,7 @@ spec:
           readOnly: false
       downloads:
         enabled: true
-        mountPath: /download
+        mountPath: /downloads
         path: /mnt/main/Music/Christine        
         server: 192.168.1.49
         type: nfs
