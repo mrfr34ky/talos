@@ -29,6 +29,7 @@ spec:
   uninstall:
     keepHistory: false
   values:
+    TZ: Europe/Brussels  
     persistence:    
       config:
           enabled: true
