@@ -12,3 +12,4 @@ resources:
   - sonarr/ks.yaml
   - syncthing/ks.yaml
   - cloudflared/ks.yaml
+  - homarr/ks.yaml

@@ -11,4 +11,4 @@ sopssecret*
 helm.exe
 kubectl.exe
 ssh-public-key.txt
-helm-release-TEMPLATE.yaml
+*-TEMPLATE.yaml
