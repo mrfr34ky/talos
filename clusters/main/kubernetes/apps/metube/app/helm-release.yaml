@@ -31,42 +31,38 @@ spec:
   values:
     TZ: Europe/Brussels
     credentials:
-#      s3:
-#        type: s3
-#        url: "${S3URL}"
-#        bucket: "${S3PREFIX}-metube"
-#        accessKey: "${S3ID}"
-#        secretKey: "${S3KEY}"
-#        encrKey: "${S3KEY}" 
+      s3:
+        type: s3
+        url: "${S3URL}"
+        bucket: "${S3PREFIX}-metube"
+        accessKey: "${S3ID}"
+        secretKey: "${S3KEY}"
+        encrKey: "${S3KEY}" 
     persistence:
-#      config:
-#        volsync:
-#          - name: b2
-#            type: restic
-#            credentials: s3
-#            dest:
-#              enabled: true
-#              accessModes:
-#                - ReadWriteOnce
-#              cacheCapacity: 10Gi
-#            src:
-#             enabled: true
-#              cacheCapacity: 10Gi
-#      backup:
-#        enabled: true
-#        mountPath: /
-#        volsync:
-#          - name: b2
-#           type: restic
-#            credentials: s3
-#           dest:
-#              accessModes:
-#               - ReadWriteOnce
-#              cacheCapacity: 10Gi
-#              enabled: true
-#            src:
-#              enabled: true
-#              cacheCapacity: 10Gi        
+      config:
+        volsync:
+          - name: b2
+            type: restic
+            credentials: s3
+            dest:
+              enabled: true                          
+              cacheCapacity: 10Gi
+            src:
+             enabled: true
+              cacheCapacity: 10Gi
+      backup:
+        enabled: true
+        mountPath: /backup
+        volsync:
+          - name: b2
+           type: restic
+            credentials: s3
+           dest:
+              cacheCapacity: 10Gi
+              enabled: true
+            src:
+              enabled: true
+              cacheCapacity: 10Gi        
       downloads:
         enabled: true
         path: /mnt/main/Videos/downloads
