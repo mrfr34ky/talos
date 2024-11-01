@@ -28,14 +28,12 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
-
   values:
     TZ: Europe/Brussels
     persistence:
       config:
         enabled: true
-        mountPath: "/var/syncthing"      
-      
+        mountPath: "/var/syncthing"     
     ingress:
         main:
           enabled: true
