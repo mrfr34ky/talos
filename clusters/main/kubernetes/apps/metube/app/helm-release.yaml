@@ -55,7 +55,7 @@ spec:
         mountPath: /backup
         volsync:
           - name: b2
-           type: restic
+            type: restic
             credentials: s3
             dest:
               cacheCapacity: 10Gi
