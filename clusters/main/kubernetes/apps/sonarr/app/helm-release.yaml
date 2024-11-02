@@ -66,7 +66,7 @@ spec:
       films:
         enabled: true
         path: /mnt/main/Videos/Series
-        mountPath: /Series
+        mountPath: /Video/Series
         server: 192.168.1.49
         type: nfs        
     workload:
