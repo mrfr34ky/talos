@@ -68,7 +68,13 @@ spec:
         path: /mnt/main/Videos/Series
         mountPath: /Video/Series
         server: 192.168.1.49
-        type: nfs        
+        type: nfs
+      bin:
+        enabled: true
+        path: /mnt/main/Videos/Recyclebin
+        mountPath: /Recyclebin
+        server: 192.168.1.49
+        type: nfs            
     workload:
       exportarr:
         enabled: false

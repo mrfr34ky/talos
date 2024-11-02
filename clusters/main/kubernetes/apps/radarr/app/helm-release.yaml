@@ -68,8 +68,13 @@ spec:
         path: /mnt/main/Videos/Films
         mountPath: /Video/Films
         server: 192.168.1.49
-        type: nfs     
-
+        type: nfs  
+      bin:
+        enabled: true
+        path: /mnt/main/Videos/Recyclebin
+        mountPath: /Recyclebin
+        server: 192.168.1.49
+        type: nfs    
     metrics:
       main:
         enabled: false
