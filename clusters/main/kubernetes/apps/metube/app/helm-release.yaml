@@ -48,7 +48,7 @@ spec:
               enabled: true                          
               cacheCapacity: 10Gi
             src:
-             enabled: true
+              enabled: true
               cacheCapacity: 10Gi
       backup:
         enabled: true
@@ -57,7 +57,7 @@ spec:
           - name: b2
            type: restic
             credentials: s3
-           dest:
+            dest:
               cacheCapacity: 10Gi
               enabled: true
             src:
