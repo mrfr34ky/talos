@@ -52,7 +52,7 @@ spec:
               enabled: true
       downloads:
         enabled: true
-        mountPath: /download
+        mountPath: /downloads
         path: /mnt/main/Media2/Music/Balazs        
         server: 192.168.1.49
         type: nfs

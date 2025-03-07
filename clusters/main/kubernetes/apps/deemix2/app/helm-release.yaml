@@ -52,7 +52,7 @@ spec:
               enabled: true
       downloads:
         enabled: true
-        mountPath: /download2
+        mountPath: /downloads2
         path: /mnt/main/Media2/Music/Christine        
         server: 192.168.1.49
         type: nfs
