@@ -1,0 +1,103 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: crowdsec
+  namespace: crowdsec
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: crowdsec
+      version: 0.18.0
+      sourceRef:
+        kind: HelmRepository
+        name: crowdsec
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    global:
+      stopAll: false    
+    TZ: Europe/Brussels
+    container_runtime: containerd
+    config:
+      config.yaml.local: |
+        api:
+          server:
+            auto_registration: # Activate if not using TLS for authentication
+              enabled: false
+              token: "${REGISTRATION_TOKEN}" # /!\ Do not modify this variable (auto-generated and handled by the chart)
+              allowed_ranges: # /!\ Make sure to adapt to the pod IP ranges used by your cluster
+                - "127.0.0.1/32"
+                - "192.168.0.0/16"
+                - "10.0.0.0/8"
+                - "172.16.0.0/16"
+                - "172.17.0.0/16"
+        db_config:
+          flush:
+            agents_autodelete:
+              cert: 60m
+              login_password: 60m
+            bouncers_autodelete:
+              cert: 60m
+              api_key: 60m
+    tls:
+      enabled: true
+      bouncer:
+        reflector:
+          namespaces: ["traefik"]
+    agent:
+      acquisition:
+        - namespace: traefik
+          podName: traefik-*
+          program: traefik
+          poll_without_inotify: true
+      env:
+        - name: PARSERS
+          value: "crowdsecurity/cri-logs crowdsecurity/whitelists crowdsecurity/nextcloud-whitelist"
+        - name: COLLECTIONS
+          value: "crowdsecurity/traefik Dominic-Wagner/vaultwarden crowdsecurity/nextcloud firix/authentik crowdsecurity/apache2"
+        - name: DISABLE_PARSERS
+          value: "crowdsecurity/whitelists"
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true    
+    lapi:
+      dashboard:
+        enabled: true
+        ingress:
+          enabled: true
+          annotations:
+            cert-manager.io/cluster-issuer: cluster-cert
+            cert-manager.io/private-key-rotation-policy: Always
+            meta.helm.sh/release-name: traefik
+            meta.helm.sh/release-namespace: traefik
+            traefik.ingress.kubernetes.io/router.entrypoints: websecure
+            traefik.ingress.kubernetes.io/router.tls: 'true'
+            traefik.ingress.kubernetes.io/router.middlewares: traefik-chain-basic@kubernetescrd,traefik-local@kubernetescrd
+          host: crowdsec.${BASE_DOMAIN}
+      env:
+        - name: DISABLE_ONLINE_API
+          value: "false"
+        - name: ENROLL_KEY
+          value: "${CSKEY}"  
+        - name: ENROLL_INSTANCE_NAME
+          value: "cluster"
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true          
