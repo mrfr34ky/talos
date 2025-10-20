@@ -1,0 +1,133 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: nextcloud
+      version: 38.9.2
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    global:
+      stopAll: false    
+    TZ: Europe/Brussels
+    resources:
+      requests:
+        cpu: 10m
+    credentials:
+      s3:
+        type: s3
+        url: "${S3URL}"
+        bucket: "${S3PREFIX}-nextcloud"
+        accessKey: "${S3ID}"
+        secretKey: "${S3KEY}"
+        encrKey: "${S3KEY}" 
+    nextcloud:
+      credentials:
+        initialAdminUser: ${NEXTCLOUD_USER}
+        initialAdminPassword: ${NEXTCLOUD_PWD}
+      general:
+        default_phone_region: BE
+        accessIP: ${NGINX_EXTERNAL_IP}
+      previews:
+        max_memory: 5120
+        max_file_size_image: 100
+      collabora:
+        enabled: true
+        username: ${COLLABORA_USER}
+        password: ${COLLABORA_PWD}
+      php:
+        memory_limit: 5G
+        upload_limit: 20G
+      opcache:
+        memory_consumption: 256    
+    persistence:
+      html:    
+        volsync:
+          - name: b2
+            type: restic
+            credentials: s3
+            dest:
+              enabled: true                          
+            src:
+              enabled: true
+              trigger:
+                schedule: 0 3 * * *
+      config:  
+        volsync:
+          - name: b2
+            type: restic
+            credentials: s3
+            dest:
+              enabled: true                          
+            src:
+              enabled: true
+              trigger:
+                schedule: 0 3 * * *
+      data:
+        enabled: true
+        type: nfs
+        server: 192.168.1.49
+        path: /mnt/main/apps/nextcloud/nc_data
+        mountPath: /var/www/html/data
+    cnpg:
+      main:
+        password: ${NEXTCLOUD_CNPG_PWD}
+        cluster:
+          singleNode: true
+        mode: recovery
+        backups:
+          enabled: true
+          credentials: s3
+          scheduledBackups:
+            - name: daily-backup
+              schedule: "30 3 0 * * *"
+              backupOwnerReference: self
+              immediate: true
+              suspend: false
+          revision: "6"
+          retentionPolicy: "7d"
+        recovery:
+          method: object_store
+          credentials: s3
+          revision: "5"  
+    redis:
+      password: ${NEXTCLOUD_REDIS_PWD}
+    ingress:
+        main:
+          enabled: true
+          ingressClassName: external
+          integrations:
+            traefik:
+              enabled: false
+            certManager:
+              enabled: true
+              certificateIssuer: domain-0-le-prod
+          hosts:
+            - host: next.${DOMAIN_0}
+              paths:
+                - path: /
+                  pathType: Prefix   

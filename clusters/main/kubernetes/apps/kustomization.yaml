@@ -7,3 +7,4 @@ resources:
   - k8tz/ks.yaml
   - authentik/ks.yaml
   - vaultwarden/ks.yaml
+  - nextcloud/ks.yaml
