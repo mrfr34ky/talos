@@ -22,3 +22,4 @@ resources:
   - pgadmin/ks.yaml
   - guacamole/ks.yaml
   - mealie/ks.yaml
+  - paperless-ngx/ks.yaml
