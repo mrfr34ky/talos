@@ -21,3 +21,4 @@ resources:
   - krusader/ks.yaml
   - pgadmin/ks.yaml
   - guacamole/ks.yaml
+  - mealie/ks.yaml
