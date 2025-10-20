@@ -20,3 +20,4 @@ resources:
   - ext-jetkvm/ks.yaml
   - krusader/ks.yaml
   - pgadmin/ks.yaml
+  - guacamole/ks.yaml
