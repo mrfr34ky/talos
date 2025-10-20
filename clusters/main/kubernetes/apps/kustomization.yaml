@@ -14,3 +14,4 @@ resources:
   - syncthing/ks.yaml
   - pihole/ks.yaml
   - plex/ks.yaml
+  - plex-auto-languages/ks.yaml
