@@ -19,3 +19,4 @@ resources:
   - ext-pikvm/ks.yaml
   - ext-jetkvm/ks.yaml
   - krusader/ks.yaml
+  - pgadmin/ks.yaml
