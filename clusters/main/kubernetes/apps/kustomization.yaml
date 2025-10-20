@@ -6,3 +6,4 @@ resources:
   - homarr/ks.yaml
   - k8tz/ks.yaml
   - authentik/ks.yaml
+  - vaultwarden/ks.yaml
