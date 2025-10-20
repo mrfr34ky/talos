@@ -8,3 +8,4 @@ resources:
   - authentik/ks.yaml
   - vaultwarden/ks.yaml
   - nextcloud/ks.yaml
+  - frigate/ks.yaml
