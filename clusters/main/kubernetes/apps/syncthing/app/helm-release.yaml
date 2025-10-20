@@ -1,0 +1,120 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: syncthing
+  namespace: syncthing
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: syncthing
+      version: 22.9.1
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    global:
+      stopAll: false
+    TZ: Europe/Brussels
+    resources:
+      requests:
+        cpu: 10m
+    credentials:
+      s3:
+        type: s3
+        url: "${S3URL}"
+        bucket: "${S3PREFIX}-syncthing2"
+        accessKey: "${S3ID}"
+        secretKey: "${S3KEY}"
+        encrKey: "${S3KEY}"        
+    persistence:
+      config:
+        volsync:
+          - name: b2
+            type: restic
+            credentials: s3
+            dest:
+              enabled: true                          
+            src:
+              enabled: true
+              trigger:
+                schedule: 0 3 * * *
+      balazshome:
+        enabled: true
+        path: /mnt/main/HomeDS/Balazs
+        mountPath: /Balazs_Home
+        server: 192.168.1.49
+        type: nfs
+      christinehome:
+        enabled: true
+        path: /mnt/main/HomeDS/Christine
+        mountPath: /Christine_Home
+        server: 192.168.1.49
+        type: nfs
+      pics:
+        enabled: true
+        path: /mnt/main/Pics
+        mountPath: /pictures
+        server: 192.168.1.49
+        type: nfs 
+      videos:
+        enabled: true
+        path: /mnt/main/Media
+        mountPath: /Media
+        server: 192.168.1.49
+        type: nfs
+      nextcloud:
+        enabled: true
+        path: /mnt/main/apps/nextcloud/nc_data
+        mountPath: /Nextcloud
+        server: 192.168.1.49
+        type: nfs
+      paperless:
+        enabled: true
+        path: /mnt/main/apps/paperless-ngx/media
+        mountPath: /Paperless
+        server: 192.168.1.49
+        type: nfs         
+    portal:
+      open:
+        enabled: true                 
+    ingress:
+        main:
+          enabled: true
+          ingressClassName: internal
+          integrations:
+            traefik:
+              enabled: false
+            certManager:
+              enabled: true
+              certificateIssuer: domain-0-le-prod
+            nginx:
+              enabled: true
+              auth:
+                type: "authentik"
+                internalHost: "authentik-http.authentik.svc.cluster.local:10230"
+                externalHost: "syncthing.${DOMAIN_0}"    
+          hosts:
+            - host: syncthing.${DOMAIN_0}
+              paths:
+                - path: /
+                  pathType: Prefix   
+  
