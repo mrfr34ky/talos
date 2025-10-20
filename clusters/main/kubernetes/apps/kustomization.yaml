@@ -15,3 +15,6 @@ resources:
   - pihole/ks.yaml
   - plex/ks.yaml
   - plex-auto-languages/ks.yaml
+  - ext-nas/ks.yaml
+  - ext-pikvm/ks.yaml
+  - ext-jetkvm/ks.yaml
