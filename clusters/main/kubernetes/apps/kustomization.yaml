@@ -9,3 +9,4 @@ resources:
   - vaultwarden/ks.yaml
   - nextcloud/ks.yaml
   - frigate/ks.yaml
+  - mosquitto/ks.yaml
