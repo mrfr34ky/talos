@@ -86,12 +86,6 @@ spec:
         mountPath: /pictures
         server: 192.168.1.49
         type: nfs
-      vmstore:
-        enabled: true
-        path: /mnt/apps/vm_store
-        mountPath: /vmstore
-        server: 192.168.1.49
-        type: nfs         
     ingress:
         main:
           enabled: true
