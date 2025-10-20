@@ -18,3 +18,4 @@ resources:
   - ext-nas/ks.yaml
   - ext-pikvm/ks.yaml
   - ext-jetkvm/ks.yaml
+  - krusader/ks.yaml
