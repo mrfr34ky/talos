@@ -13,3 +13,4 @@ resources:
   - home-assistant/ks.yaml
   - syncthing/ks.yaml
   - pihole/ks.yaml
+  - plex/ks.yaml
