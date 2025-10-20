@@ -23,3 +23,11 @@ resources:
   - guacamole/ks.yaml
   - mealie/ks.yaml
   - paperless-ngx/ks.yaml
+  - deemix/ks.yaml
+  - deemix2/ks.yaml
+  - metube/ks.yaml
+  - overseerr/ks.yaml
+  - prowlarr/ks.yaml
+  - qbittorrent/ks.yaml
+  - radarr/ks.yaml
+  - sonarr/ks.yaml
