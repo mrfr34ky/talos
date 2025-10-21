@@ -31,3 +31,4 @@ resources:
   - qbittorrent/ks.yaml
   - radarr/ks.yaml
   - sonarr/ks.yaml
+  - ext-prox/ks.yaml
