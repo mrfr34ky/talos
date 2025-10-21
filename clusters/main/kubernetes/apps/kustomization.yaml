@@ -32,3 +32,4 @@ resources:
   - radarr/ks.yaml
   - sonarr/ks.yaml
   - ext-prox/ks.yaml
+  - tailscale/ks.yaml
