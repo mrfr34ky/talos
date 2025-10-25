@@ -46,26 +46,26 @@ spec:
     resources:
       requests:
         cpu: 10m
-    credentials:
-      s3:
-        type: s3
-        url: "${S3URL}"
-        bucket: "${S3PREFIX}-homarr"
-        accessKey: "${S3ID}"
-        secretKey: "${S3KEY}"
-        encrKey: "${S3KEY}" 
-    persistence:
-      appdata:
-        volsync:
-          - name: b2
-            type: restic
-            credentials: s3
-            dest:
-              enabled: true                          
-            src:
-              enabled: true
-              trigger:
-                schedule: 0 3 * * *                        
+    #credentials:
+    #  s3:
+    #    type: s3
+    #    url: "${S3URL}"
+    #    bucket: "${S3PREFIX}-homarr"
+    #    accessKey: "${S3ID}"
+    #    secretKey: "${S3KEY}"
+    #    encrKey: "${S3KEY}" 
+    #persistence:
+    #  appdata:
+    #    volsync:
+    #      - name: b2
+    #        type: restic
+    #        credentials: s3
+    #        dest:
+    #          enabled: true                          
+    #       src:
+    #          enabled: true
+    #          trigger:
+    #            schedule: 0 3 * * *                        
     ingress:
         main:
           enabled: true
