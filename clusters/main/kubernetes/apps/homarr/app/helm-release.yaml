@@ -65,10 +65,7 @@ spec:
             src:
               enabled: true
               trigger:
-                schedule: 0 3 * * *               
-    portal:
-      open:
-        enabled: true          
+                schedule: 0 3 * * *                        
     ingress:
         main:
           enabled: true
