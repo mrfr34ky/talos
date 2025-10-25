@@ -55,29 +55,7 @@ spec:
         secretKey: "${S3KEY}"
         encrKey: "${S3KEY}" 
     persistence:
-      config:
-        volsync:
-          - name: b2
-            type: restic
-            credentials: s3
-            dest:
-              enabled: true                          
-            src:
-              enabled: true
-              trigger:
-                schedule: 0 3 * * *
-      icons:
-        volsync:
-          - name: b2
-            type: restic
-            credentials: s3
-            dest:
-              enabled: true                          
-            src:
-              enabled: true
-              trigger:
-                schedule: 0 3 * * *
-      data:
+      appdata:
         volsync:
           - name: b2
             type: restic
