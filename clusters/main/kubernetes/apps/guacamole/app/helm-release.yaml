@@ -90,12 +90,12 @@ spec:
               backupOwnerReference: self
               immediate: true
               suspend: false
-          revision: "4"
+          revision: "3"
           retentionPolicy: "7d"
         recovery:
           method: object_store
           credentials: s3
-          revision: "3"    
+          revision: "2"    
     ingress:
         main:
           enabled: true
