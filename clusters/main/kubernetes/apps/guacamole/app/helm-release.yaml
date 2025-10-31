@@ -80,7 +80,7 @@ spec:
         password: ${GUACAMOLE_CNPG_PWD}
         cluster:
           singleNode: true
-        #mode: recovery
+        mode: recovery
         backups:
           enabled: true
           credentials: s3
@@ -90,12 +90,12 @@ spec:
               backupOwnerReference: self
               immediate: true
               suspend: false
-          revision: "3"
+          revision: "4"
           retentionPolicy: "7d"
         recovery:
           method: object_store
           credentials: s3
-          revision: "2"    
+          revision: "3"    
     ingress:
         main:
           enabled: true
