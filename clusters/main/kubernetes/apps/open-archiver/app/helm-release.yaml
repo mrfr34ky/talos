@@ -34,9 +34,9 @@ spec:
     global:
       stopAll: false    
     TZ: Europe/Brussels
-    resources:
-      requests:
-        cpu: 10m
+    #resources:
+    #  requests:
+    #    cpu: 10m
     #credentials:
     #  s3:
     #    type: s3
