@@ -152,7 +152,7 @@ spec:
                 # STORAGE_ENCRYPTION_KEY: "${OPEN_ARCHIVER_STORAGE_ENCRYPTION_KEY}"
                 # --- Security & Authentication ---
                 # Enable or disable deletion of emails and ingestion sources. Defaults to false.
-                ENABLE_DELETION: true
+                ENABLE_DELETION: false
                 # Rate Limiting
                 # The window in milliseconds for which API requests are checked. Defaults to 60000 (1 minute).
                 RATE_LIMIT_WINDOW_MS: 60000
