@@ -33,3 +33,4 @@ resources:
   - sonarr/ks.yaml
   - ext-prox/ks.yaml
   - tailscale/ks.yaml
+  - open-archiver/ks.yaml
