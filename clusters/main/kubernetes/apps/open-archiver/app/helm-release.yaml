@@ -216,9 +216,9 @@ spec:
       data:
         enabled: true
         mountPath: "/var/data/open-archiver"
-        #path: /mnt/main/apps/open-archiver/data
-        #server: 192.168.1.49
-        #type: nfs
+        path: /mnt/main/apps/open-archiver/data
+        server: 192.168.1.49
+        type: nfs
         #volsync:
         #  - name: b2
         #    type: restic
