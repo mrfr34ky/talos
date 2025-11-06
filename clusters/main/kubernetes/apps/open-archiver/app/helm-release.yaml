@@ -235,12 +235,12 @@ spec:
           main:
             meili:
               mountPath: "/meili_data"
-      redis:
-        enabled: true                       
+    redis:
+      enabled: true                       
     cnpg:
       main:
         enabled: true
-        #password: ${HA_CNPG_PWD}
+        #password: ${OPEN_CNPG_PWD}
         cluster:
           singleNode: true
         #mode: recovery
