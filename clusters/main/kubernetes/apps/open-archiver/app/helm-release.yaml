@@ -234,7 +234,7 @@ spec:
         targetSelector:
           main:
             meili:
-              mountPath: /meili_data
+              mountPath: "/meili_data"
       redis:
         enabled: true                       
     cnpg:
