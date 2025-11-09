@@ -46,8 +46,8 @@ spec:
         main:
           enabled: true
           ingressClassName: internal
-          #annotations:
-          #  nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+          annotations:
+            nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
           integrations:
             traefik:
               enabled: false
