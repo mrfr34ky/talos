@@ -10,7 +10,7 @@ spec:
   chart:
     spec:
       chart: mealie
-      version: 26.14.2
+      version: 26.15.0
       sourceRef:
         kind: HelmRepository
         name: truecharts
