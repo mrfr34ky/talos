@@ -6,42 +6,48 @@
         "matchUpdateTypes": ["patch"],
         "automerge": false,
         "matchPackageNames": ["ghcr.io/siderolabs/kubelet", "ghcr.io/siderolabs/installer"],
-        "labels": ["type/patch", "system-upgrade"]
+        "labels": ["type/patch", "system-upgrade"],
+        "addLabels": null
       },
       {
         "description": ["Block automerge for Kubelet and Talos version Minor"],
         "matchUpdateTypes": ["minor"],
         "automerge": false,
         "matchPackageNames": ["ghcr.io/siderolabs/kubelet", "ghcr.io/siderolabs/installer"],
-        "labels": ["type/minor", "system-upgrade"]
+        "labels": ["type/minor", "system-upgrade"],
+        "addLabels": null
       },
       {
         "description": ["Block automerge for Kubelet and Talos version Major"],
         "matchUpdateTypes": ["major"],
         "dependencyDashboardApproval": true,
         "matchPackageNames": ["ghcr.io/siderolabs/kubelet", "ghcr.io/siderolabs/installer"],
-        "labels": ["type/major", "system-upgrade"]
+        "labels": ["type/major", "system-upgrade"],
+        "addLabels": null
       },
       {
         "description": ["Block automerge for Cilium version Patch"],
         "matchUpdateTypes": ["patch"],
         "automerge": false,
         "matchPackageNames": ["quay.io/cilium/cilium","quay.io/cilium/operator-generic","ghcr.io/home-operations/charts-mirror/cilium"],
-        "labels": ["type/patch"]
+        "labels": ["type/patch"],
+        "addLabels": null
       },
       {
         "description": ["Block automerge for Cilium version Minor"],
         "matchUpdateTypes": ["minor"],
         "automerge": false,
         "matchPackageNames": ["quay.io/cilium/cilium","quay.io/cilium/operator-generic","ghcr.io/home-operations/charts-mirror/cilium"],
-        "labels": ["type/minor"]  
+        "labels": ["type/minor"],
+        "addLabels": null  
       },
       {
         "description": ["Block automerge for Cilium version Major"],
         "matchUpdateTypes": ["major"],
         "dependencyDashboardApproval": true,
         "matchPackageNames": ["quay.io/cilium/cilium","quay.io/cilium/operator-generic","ghcr.io/home-operations/charts-mirror/cilium"],
-        "labels": ["type/major"]
+        "labels": ["type/major"],
+        "addLabels": null
       }
     ]
   }
