@@ -118,7 +118,7 @@ spec:
               backupOwnerReference: self
               immediate: true
               suspend: false
-          revision: ""
+          revision: "0"
           retentionPolicy: "7d"
         recovery:
           method: object_store
