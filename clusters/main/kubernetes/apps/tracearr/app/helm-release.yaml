@@ -118,12 +118,12 @@ spec:
               backupOwnerReference: self
               immediate: true
               suspend: false
-          revision: "0"
+          #revision: "0"
           retentionPolicy: "7d"
         recovery:
           method: object_store
           credentials: s3
-          revision: "0"  
+          #revision: "0"  
 
     redis:
       enabled: true
