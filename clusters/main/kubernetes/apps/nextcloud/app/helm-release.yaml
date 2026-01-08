@@ -60,10 +60,10 @@ spec:
         username: ${COLLABORA_USER}
         password: ${COLLABORA_PWD}
       php:
-        memory_limit: 5G
+        memory_limit: 10G
         upload_limit: 20G
       opcache:
-        memory_consumption: 256    
+        memory_consumption: 2560    
     persistence:
       html:    
         volsync:
