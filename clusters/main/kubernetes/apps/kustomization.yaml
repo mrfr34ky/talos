@@ -34,3 +34,4 @@ resources:
   - ext-prox/ks.yaml
   - tailscale/ks.yaml
   #- tracearr/ks.yaml
+  - flaresolverr/ks.yaml
