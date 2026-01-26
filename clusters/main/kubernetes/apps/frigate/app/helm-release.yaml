@@ -10,7 +10,7 @@ spec:
   chart:
     spec:
       chart: frigate
-      version: 18.15.16
+      version: 18.15.17
       sourceRef:
         kind: HelmRepository
         name: truecharts
