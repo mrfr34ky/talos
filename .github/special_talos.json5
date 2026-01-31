@@ -48,6 +48,30 @@
         "matchPackageNames": ["quay.io/cilium/cilium","quay.io/cilium/operator-generic","ghcr.io/home-operations/charts-mirror/cilium"],
         "labels": ["type/major"],
         "addLabels": null
+      },
+      {
+        "description": ["Block automerge for Authentik version Patch"],
+        "matchUpdateTypes": ["patch"],
+        "automerge": false,
+        "matchPackageNames": ["ghcr.io/goauthentik","ghcr.io/goauthentik/authentik"],
+        "labels": ["type/patch"],
+        "addLabels": null
+      },
+      {
+        "description": ["Block automerge for Authentik version Minor"],
+        "matchUpdateTypes": ["minor"],
+        "automerge": false,
+        "matchPackageNames": ["ghcr.io/goauthentik","ghcr.io/goauthentik/authentik"],
+        "labels": ["type/minor"],
+        "addLabels": null  
+      },
+      {
+        "description": ["Block automerge for Authentik version Major"],
+        "matchUpdateTypes": ["major"],
+        "dependencyDashboardApproval": true,
+        "matchPackageNames": ["ghcr.io/goauthentik","ghcr.io/goauthentik/authentik"],
+        "labels": ["type/major"],
+        "addLabels": null
       }
     ]
   }
