@@ -72,10 +72,10 @@ spec:
               certificateIssuer: domain-0-le-prod
             nginx:
               enabled: true
-              #auth:
-              #  type: "authentik"
-              #  internalHost: "authentik-http.authentik.svc.cluster.local:10230"
-              #  externalHost: "prowlarr.${DOMAIN_0}"    
+              auth:
+                type: "authentik"
+                internalHost: "authentik-http.authentik.svc.cluster.local:10230"
+                externalHost: "prowlarr.${DOMAIN_0}"    
           hosts:
             - host: prowlarr.${DOMAIN_0}
               paths:
