@@ -50,27 +50,11 @@
         "addLabels": null
       },
       {
-        "description": ["Block automerge for Authentik version Patch"],
-        "matchUpdateTypes": ["patch"],
-        "automerge": false,
-        "matchPackageNames": ["ghcr.io/goauthentik/helm-charts/authentik"],
-        "labels": ["type/patch"],
-        "addLabels": null
-      },
-      {
-        "description": ["Block automerge for Authentik version Minor"],
-        "matchUpdateTypes": ["minor"],
-        "automerge": false,
-        "matchPackageNames": ["ghcr.io/goauthentik/helm-charts/authentik"],
-        "labels": ["type/minor"],
-        "addLabels": null  
-      },
-      {
-        "description": ["Block automerge for Authentik version Major"],
-        "matchUpdateTypes": ["major"],
+        "description": ["Block automerge for Authentik"],
+        "matchUpdateTypes": ["minor","major","patch"],
         "dependencyDashboardApproval": true,
-        "matchPackageNames": ["ghcr.io/goauthentik/helm-charts/authentik"],
-        "labels": ["type/major"],
+        "matchPackageNames": ["oci.trueforge.org/truecharts/authentik"],
+        "labels": ["type/minor","type/major","type/patch"],
         "addLabels": null
       }
     ]
