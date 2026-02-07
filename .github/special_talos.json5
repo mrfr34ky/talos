@@ -56,6 +56,14 @@
         "matchPackageNames": ["oci.trueforge.org/truecharts/authentik"],
         "labels": ["type/minor","type/major","type/patch"],
         "addLabels": null
+      },
+      {
+        "description": ["Block automerge for Nextcloud"],
+        "matchUpdateTypes": ["minor","major","patch"],
+        "dependencyDashboardApproval": true,
+        "matchPackageNames": ["oci.trueforge.org/truecharts/nextcloud"],
+        "labels": ["type/minor","type/major","type/patch"],
+        "addLabels": null
       }
     ]
   }
