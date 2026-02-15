@@ -10,7 +10,7 @@ spec:
   chart:
     spec:
       chart: mosquitto
-      version: 17.13.18
+      version: 17.13.19
       sourceRef:
         kind: HelmRepository
         name: truecharts
