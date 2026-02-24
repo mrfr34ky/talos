@@ -10,7 +10,7 @@ spec:
   chart:
     spec:
       chart: homarr
-      version: 14.14.0
+      version: 14.15.0
       sourceRef:
         kind: HelmRepository
         name: truecharts
