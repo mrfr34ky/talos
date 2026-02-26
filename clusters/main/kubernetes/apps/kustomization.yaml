@@ -35,6 +35,6 @@ resources:
   - tailscale/ks.yaml
   #- tracearr/ks.yaml
   - flaresolverr/ks.yaml
-  - filezilla/ks.yaml
+  #- filezilla/ks.yaml
   - jdownloader2/ks.yaml
   - seerr/ks.yaml
