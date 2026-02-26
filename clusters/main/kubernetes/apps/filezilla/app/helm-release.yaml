@@ -59,20 +59,20 @@ spec:
                 schedule: 0 3 * * *     
       downloads:
         enabled: true
-        path: /mnt/main/Media/downloads
+        path: /mnt/main/media/downloads
         mountPath: /downloads
         server: 192.168.1.49
         type: nfs
       Films:
         enabled: true
-        path: /mnt/main/Media/Films
+        path: /mnt/main/media/films
         mountPath: /films
         server: 192.168.1.49
         type: nfs
       Series:
         enabled: true
-        path: /mnt/main/Media/Series
-        mountPath: /Series
+        path: /mnt/main/media/series
+        mountPath: /series
         server: 192.168.1.49
         type: nfs    
     ingress:
