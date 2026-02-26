@@ -200,4 +200,8 @@ spec:
             - host: "krusader.${DOMAIN_0}"
               paths:
                 - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific            
+                  pathType: ImplementationSpecific    
+            - host: "filezilla.${DOMAIN_0}"
+              paths:
+                - path: /outpost.goauthentik.io
+                  pathType: ImplementationSpecific                  

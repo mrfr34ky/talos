@@ -59,10 +59,22 @@ spec:
                 schedule: 0 3 * * *     
       downloads:
         enabled: true
-        path: /mnt/main/
+        path: /mnt/main/Media/downloads
         mountPath: /downloads
         server: 192.168.1.49
         type: nfs
+      Films:
+        enabled: true
+        path: /mnt/main/Media/Films
+        mountPath: /films
+        server: 192.168.1.49
+        type: nfs
+      Series:
+        enabled: true
+        path: /mnt/main/Media/Series
+        mountPath: /Series
+        server: 192.168.1.49
+        type: nfs    
     ingress:
         main:
           enabled: true
@@ -73,8 +85,14 @@ spec:
             certManager:
               enabled: true
               certificateIssuer: domain-0-le-prod
+            nginx:
+              enabled: true
+              auth:
+                type: "authentik"
+                internalHost: "authentik-http.authentik.svc.cluster.local:10230"
+                externalHost: "filezilla.${DOMAIN_0}"  
           hosts:
             - host: filezilla.${DOMAIN_0}
               paths:
                 - path: /
-                  pathType: Prefix              
+                  pathType: Prefix
