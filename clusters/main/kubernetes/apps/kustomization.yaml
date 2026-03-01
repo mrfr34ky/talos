@@ -26,7 +26,7 @@ resources:
   - deemix/ks.yaml
   - deemix2/ks.yaml
   - metube/ks.yaml
-  - overseerr/ks.yaml
+  #- overseerr/ks.yaml
   - prowlarr/ks.yaml
   - qbittorrent/ks.yaml
   - radarr/ks.yaml
