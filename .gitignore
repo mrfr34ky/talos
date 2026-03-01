@@ -15,3 +15,9 @@ kubectl.exe
 _gsdata_
 talosctl.exe
 ssh-public-key.txt
+^forgetool.exe
+^forgetool*
+^forgetool
+*forge.exe
+forgetool.exe
+forgetool
