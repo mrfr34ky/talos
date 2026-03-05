@@ -26,27 +26,11 @@
         "addLabels": null
       },
       {
-        "description": ["Block automerge for Cilium version Patch"],
-        "matchUpdateTypes": ["patch"],
+        "description": ["Block automerge for Cilium"],
+        "matchUpdateTypes": ["minor","major","patch"],
         "automerge": false,
         "matchPackageNames": ["quay.io/cilium/cilium","quay.io/cilium/operator-generic","ghcr.io/home-operations/charts-mirror/cilium"],
-        "labels": ["type/patch"],
-        "addLabels": null
-      },
-      {
-        "description": ["Block automerge for Cilium version Minor"],
-        "matchUpdateTypes": ["minor"],
-        "automerge": false,
-        "matchPackageNames": ["quay.io/cilium/cilium","quay.io/cilium/operator-generic","ghcr.io/home-operations/charts-mirror/cilium"],
-        "labels": ["type/minor"],
-        "addLabels": null  
-      },
-      {
-        "description": ["Block automerge for Cilium version Major"],
-        "matchUpdateTypes": ["major"],
-        "dependencyDashboardApproval": true,
-        "matchPackageNames": ["quay.io/cilium/cilium","quay.io/cilium/operator-generic","ghcr.io/home-operations/charts-mirror/cilium"],
-        "labels": ["type/major"],
+        "labels": ["type/minor","type/major","type/patch"],
         "addLabels": null
       },
       {
