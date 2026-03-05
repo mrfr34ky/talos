@@ -33,7 +33,7 @@ resources:
   - sonarr/ks.yaml
   - ext-prox/ks.yaml
   - tailscale/ks.yaml
-  #- tracearr/ks.yaml
+  - tracearr/ks.yaml
   - flaresolverr/ks.yaml
   - filezilla/ks.yaml
   - jdownloader2/ks.yaml
