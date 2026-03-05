@@ -39,7 +39,7 @@ nodes:
             - network: 0.0.0.0/0
               gateway: ${GATEWAY}
           vip:
-            ip: ${VIP}
+            ip: ${VIP}       
 controlPlane:
     patches:
         - '@./patches/controlplane.yaml'
