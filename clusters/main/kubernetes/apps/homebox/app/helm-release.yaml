@@ -57,6 +57,17 @@ spec:
               enabled: true
               trigger:
                 schedule: 0 3 * * *
+    homebox:
+      allow_registration: false
+      #auto_increment_asset_id: true
+      #max_upload_size: 10
+      #log_level: info
+      #log_format: text
+      #mailer_host: ""
+      #mailer_port: 587
+      #mailer_from: ""
+      #mailer_username: ""
+      #mailer_password: ""            
     ingress:
         main:
           enabled: true
