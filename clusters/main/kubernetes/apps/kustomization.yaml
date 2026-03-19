@@ -39,3 +39,4 @@ resources:
   - jdownloader2/ks.yaml
   - seerr/ks.yaml
   #- homebox/ks.yaml
+  - profilarr/ks.yaml
