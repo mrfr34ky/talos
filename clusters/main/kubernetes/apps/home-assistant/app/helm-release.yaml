@@ -41,7 +41,7 @@ spec:
     image:
       repository: docker.io/homeassistant/home-assistant
       pullPolicy: IfNotPresent
-      tag: 2026.3.3    
+      tag: 2026.3.4    
     credentials:
       s3:
         type: s3
