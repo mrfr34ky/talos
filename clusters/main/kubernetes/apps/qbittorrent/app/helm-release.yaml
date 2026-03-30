@@ -114,8 +114,8 @@ spec:
             VPN_TYPE: "openvpn"
             OPENVPN_USER: ${OPENVPN_USER}
             OPENVPN_PASSWORD: ${OPENVPN_PASSWORD}
-            SERVER_REGIONS: "United States"
-            SERVER_CITIES: "New York"
+            SERVER_REGIONS: "Belgium"
+            SERVER_CITIES: "Brussels"
             HTTPPROXY: "on"
             HTTPPROXY_LOG: "on"
             HTTPPROXY_LISTENING_ADDRESS: :8888
