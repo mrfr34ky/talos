@@ -40,4 +40,4 @@ resources:
   - seerr/ks.yaml
   #- homebox/ks.yaml
   - profilarr/ks.yaml
-  - zigbee2mqtt/ks.yaml
+  #- zigbee2mqtt/ks.yaml
