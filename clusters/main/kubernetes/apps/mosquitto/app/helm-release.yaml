@@ -69,4 +69,4 @@ spec:
               trigger:
                 schedule: 0 3 * * *
     auth:
-      enabled: true                      
+      enabled: false                     
