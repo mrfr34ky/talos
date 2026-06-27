@@ -10,7 +10,7 @@ spec:
   chart:
     spec:
       chart: zigbee2mqtt
-      version: 16.6.0
+      version: 16.7.0
       sourceRef:
         kind: HelmRepository
         name: truecharts
