@@ -40,7 +40,7 @@ resources:
   #- mealie/ks.yaml
   - home-assistant/ks.yaml
   - guacamole/ks.yaml
-  #- paperless-ngx/ks.yaml
+  - paperless-ngx/ks.yaml
   - vaultwarden/ks.yaml
   - authentik/ks.yaml
   #- tracearr/ks.yaml
