@@ -42,7 +42,7 @@ resources:
   #- guacamole/ks.yaml
   #- paperless-ngx/ks.yaml
   - vaultwarden/ks.yaml
-  #- authentik/ks.yaml
+  - authentik/ks.yaml
   #- tracearr/ks.yaml
   - seerr/ks.yaml
   
