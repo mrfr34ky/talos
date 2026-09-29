@@ -77,7 +77,7 @@ spec:
         enabled: true
         user: seerr
         database: seerr
-        #mode: recovery
+        mode: recovery
         cluster:
           singleNode: true
         backups:
@@ -89,7 +89,7 @@ spec:
               backupOwnerReference: self
               immediate: true
               suspend: false
-          revision: "0"
+          revision: "1"
           retentionPolicy: "7d"
         recovery:
           method: object_store

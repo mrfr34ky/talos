@@ -44,5 +44,5 @@ resources:
   - vaultwarden/ks.yaml
   #- authentik/ks.yaml
   #- tracearr/ks.yaml
-  #- seerr/ks.yaml
+  - seerr/ks.yaml
   
