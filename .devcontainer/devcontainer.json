@@ -1,0 +1,33 @@
+{
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
+  "name": "TalosCluster",
+  "image": "oci.trueforge.org/containerforge/devcontainer:4.1.1@sha256:241d48c45c9da6bbbbd371ba7eb934ad2e981f35c0c8827096d5e434e0c77dbb",
+  "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "albert.TabOut",
+        "mikestead.dotenv",
+        "mitchdenny.ecdc",
+        "signageos.signageos-vscode-sops",
+        "EditorConfig.editorconfig",
+        "PKief.material-icon-theme",
+        "usernamehw.errorlens",
+        "redhat.vscode-yaml",
+        "weaveworks.vscode-gitops-tools",
+        "Tim-Koehler.helm-intellisense",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "sandipchitale.vscode-kubernetes-helm-extras",
+        "VadzimNestsiarenka.helm-template-preview-and-more",
+        "karyan40024.helmix",
+        "eamodio.gitlens",
+        "Codium.codium",
+        "mhutchie.git-graph",
+        "yzhang.markdown-all-in-one",
+        "DavidAnson.vscode-markdownlint",
+        "GitHub.copilot",
+        "blueglassblock.better-json5"
+      ]
+    }
+  }
+}

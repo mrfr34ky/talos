@@ -1,0 +1,89 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: email2pdf
+  namespace: email2pdf
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: app-template
+      version: 18.23.3
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    global:
+      stopAll: false    
+    TZ: Europe/Brussels
+    resources:
+      requests:
+        cpu: 10m
+    image:
+      repository: ghcr.io/mrfr34ky/emails-html-to-pdf
+      pullPolicy: IfNotPresent
+      tag: latest
+    securityContext:
+      container:
+        readOnlyRootFilesystem: false
+        runAsNonRoot: false
+        runAsUser: 0
+        runAsGroup: 0  
+    service:
+      main:
+        enabled: false   
+    workload:
+      main:
+        podSpec:
+          containers:
+            main:
+              probes:
+                liveness:
+                  enabled: false
+                readiness:
+                  enabled: false
+                startup:
+                  enabled: false
+              env:
+                IMAP_URL: "imap.gmail.com"
+                IMAP_USERNAME: "${GMAIL_USER}"
+                IMAP_PASSWORD: "${EMAIL2PDF_SMTP_PWD}"
+                IMAP_FOLDER_1: "Orders"
+                EMAIL_SUBJECT_TEMPLATE_1: "email2pdf-Orders {subject}"
+                IMAP_FOLDER_2: "Bike"
+                EMAIL_SUBJECT_TEMPLATE_2: "email2pdf-Bike {subject}"
+                IMAP_FOLDER_3: "House"
+                EMAIL_SUBJECT_TEMPLATE_3: "email2pdf-House {subject}"
+                IMAP_FOLDER_4: "House_Bills"
+                EMAIL_SUBJECT_TEMPLATE_4: "email2pdf-House_Bills {subject}"
+                SMTP_PORT: "587"
+                SMTP_TLS: "true"
+                SMTP_USERNAME: "${GMAIL_USER}"
+                SMTP_PASSWORD: "${EMAIL2PDF_SMTP_PWD}"
+                SMTP_URL: "smtp.gmail.com"
+                MAIL_SENDER: "${GMAIL_USER}"
+                MAIL_DESTINATION: "${GMAIL_USER}"
+                INTER_RUN_INTERVAL: "600"
+                #HOSTS: "127.0.0.1 megekko.nl"
+                WKHTMLTOPDF_OPTIONS: "{\"load-media-error-handling\": \"ignore\", \"disable-javascript\": \"\", \"disable-local-file-access\": \"\", \"disable-external-links\": \"\"}"
+                PRINT_FAILED_MSG: "true"
+                DELETE_AFTER_PROCESS: "true"
+                DELETE_FOLDER: "[Gmail]/Bin"

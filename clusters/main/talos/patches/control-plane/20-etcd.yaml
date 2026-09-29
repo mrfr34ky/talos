@@ -1,0 +1,7 @@
+# Etcd has no separate native document in Talos 1.14.
+cluster:
+  etcd:
+    extraArgs:
+      listen-metrics-urls: http://0.0.0.0:2381
+      heartbeat-interval: "250"
+      election-timeout: "2500"

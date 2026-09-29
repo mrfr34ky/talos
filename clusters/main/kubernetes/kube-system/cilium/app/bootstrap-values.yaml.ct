@@ -1,0 +1,18 @@
+envoy:
+  enabled: false
+hubble:
+  enabled: false
+operator:
+  dashboards:
+    enabled: false
+  prometheus:
+    enabled: false
+    serviceMonitor:
+      enabled: false
+dashboards:
+  enabled: false
+prometheus:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    trustCRDsExist: false

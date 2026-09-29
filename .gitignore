@@ -1,0 +1,18 @@
+# Clustertool
+/clustertool
+/clustertool.exe
+# Secrets
+age.agekey
+*.pub
+*.key
+*.decrypted~*.yaml
+# Kubernetes
+kubeconfig
+talosconfig
+helm.exe
+kubectl.exe
+*-TEMPLATE.yaml
+_gsdata_
+talosctl.exe
+flux.exe
+HOW_TO.md

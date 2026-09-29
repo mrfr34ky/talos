@@ -1,0 +1,8 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "github>trueforge-org/renovate-config",
+    "github>mrfr34ky/taloscluster//.github/special_talos.json5"
+  ]
+}
