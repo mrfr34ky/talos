@@ -80,7 +80,7 @@ spec:
         password: ${GUACAMOLE_CNPG_PWD}
         cluster:
           singleNode: true
-        mode: recovery
+        #mode: recovery
         backups:
           enabled: true
           credentials: s3
