@@ -39,7 +39,7 @@ resources:
   - nextcloud/ks.yaml
   #- mealie/ks.yaml
   - home-assistant/ks.yaml
-  - guacamole/ks.yaml
+  #- guacamole/ks.yaml
   #- paperless-ngx/ks.yaml
   - vaultwarden/ks.yaml
   - authentik/ks.yaml
