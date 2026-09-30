@@ -110,7 +110,7 @@ spec:
         enabled: true
         user: tracearr
         database: tracearr
-        mode: recovery
+        #mode: recovery
         cluster:
           singleNode: true
         backups:
