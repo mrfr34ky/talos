@@ -5,7 +5,7 @@
         "description": ["Block automerge for Kubelet and Talos version Patch"],
         "matchUpdateTypes": ["patch"],
         "automerge": false,
-        "matchPackageNames": ["ghcr.io/siderolabs/kubelet", "ghcr.io/siderolabs/installer"],
+        "matchPackageNames": ["ghcr.io/siderolabs/kubelet", "ghcr.io/siderolabs/talos"],
         "labels": ["type/patch", "system-upgrade"],
         "addLabels": null
       },
@@ -13,24 +13,17 @@
         "description": ["Block automerge for Kubelet and Talos version Minor"],
         "matchUpdateTypes": ["minor"],
         "automerge": false,
-        "matchPackageNames": ["ghcr.io/siderolabs/kubelet", "ghcr.io/siderolabs/installer"],
+        "matchPackageNames": ["ghcr.io/siderolabs/kubelet", "ghcr.io/siderolabs/talos"],
         "labels": ["type/minor", "system-upgrade"],
         "addLabels": null
       },
       {
         "description": ["Block automerge for Kubelet and Talos version Major"],
         "matchUpdateTypes": ["major"],
-        "dependencyDashboardApproval": true,
-        "matchPackageNames": ["ghcr.io/siderolabs/kubelet", "ghcr.io/siderolabs/installer"],
-        "labels": ["type/major", "system-upgrade"],
-        "addLabels": null
-      },
-      {
-        "description": ["Block automerge for Cilium"],
-        "matchUpdateTypes": ["minor","major","patch"],
         "automerge": false,
-        "matchPackageNames": ["quay.io/cilium/cilium","quay.io/cilium/operator-generic","ghcr.io/home-operations/charts-mirror/cilium"],
-        "labels": ["type/minor","type/major","type/patch"],
+        "dependencyDashboardApproval": true,
+        "matchPackageNames": ["ghcr.io/siderolabs/kubelet", "ghcr.io/siderolabs/talos"],
+        "labels": ["type/major", "system-upgrade"],
         "addLabels": null
       },
       {
