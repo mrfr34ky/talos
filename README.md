@@ -10,4 +10,4 @@ This repository contains a Kubernetes cluster bootstrapped with **TrueForge Clus
 🌍 **TrueForge** is a community-driven organization building and maintaining awesome open-source projects.  
 Learn more at 👉 https://trueforge.org/
 
-🎯 The goal is a **simple, GitOps-driven Kubernetes cluster** with minimal manual effort. 
+🎯 The goal is a **simple, GitOps-driven Kubernetes cluster** with minimal manual effort.
