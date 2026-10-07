@@ -24,7 +24,7 @@ spec:
   values:
     workload:
       main:
-          podSpec:
-            containers:
-              kube-rbac-proxy:
-                enabled: false
+        podSpec:
+          containers:
+            kube-rbac-proxy:
+              enabled: false
