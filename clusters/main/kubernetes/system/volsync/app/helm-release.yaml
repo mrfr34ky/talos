@@ -23,7 +23,7 @@ spec:
       retries: 3
   values:
     workload:
-        main:
+      main:
           podSpec:
             containers:
               kube-rbac-proxy:
