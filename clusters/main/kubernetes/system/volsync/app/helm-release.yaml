@@ -28,3 +28,6 @@ spec:
           containers:
             kube-rbac-proxy:
               enabled: false
+    configmap:
+      dashboard-volsync:
+        enabled: false            
