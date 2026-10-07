@@ -22,12 +22,6 @@ spec:
     remediation:
       retries: 3
   values:
-    workload:
-      main:
-        podSpec:
-          containers:
-            kube-rbac-proxy:
-              enabled: false
     configmap:
       dashboard-volsync:
         enabled: false            
