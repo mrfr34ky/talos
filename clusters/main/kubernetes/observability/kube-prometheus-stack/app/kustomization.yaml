@@ -8,3 +8,4 @@ resources:
   - alertmanagerconfig.yaml
   - scrapeconfig.yaml
   - prometheusrule-truenas.yaml
+  - prometheusrule-proxmox.yaml
