@@ -50,8 +50,9 @@ spec:
         main:
           enabled: true
           ingressClassName: internal
-          #annotations:
-          #  nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+          annotations:
+            # Often switched off: keep it off the Gatus status page (no down/up Discord noise)
+            gatus.home-operations.com/enabled: "false"
           integrations:
             traefik:
               enabled: true

@@ -9,6 +9,7 @@
 [![Flux](https://img.shields.io/endpoint?url=https://badges.b-a-l-a-z-s.workers.dev/badges/flux_version?format=shields&style=for-the-badge&logo=flux&logoColor=white&label=%20)](https://fluxcd.io/)
 
 [![Home-Internet](https://img.shields.io/uptimerobot/status/m804260968-e965d79e489ec74dffededdc?style=for-the-badge&logo=cloudflare&logoColor=white&label=Home%20Internet)](https://uptimerobot.com/)&nbsp;&nbsp;
+[![Status-Page](https://img.shields.io/website?url=https%3A%2F%2Fstatus.b-a-l-a-z-s.workers.dev&style=for-the-badge&logo=statuspage&logoColor=white&label=Status%20Page&up_message=up&down_message=down)](https://status.b-a-l-a-z-s.workers.dev)&nbsp;&nbsp;
 [![Alertmanager](https://img.shields.io/endpoint?url=https://healthchecks.io/b/2/7a2c7041-f05e-4c81-82fa-16781ded7346.shields&style=for-the-badge&logo=prometheus&logoColor=white&label=Alertmanager)](https://healthchecks.io/)
 
 [![Age-Days](https://img.shields.io/endpoint?url=https://badges.b-a-l-a-z-s.workers.dev/badges/cluster_age_days?format=shields&style=flat-square&label=Age)](https://github.com/home-operations/kromgo)&nbsp;&nbsp;
