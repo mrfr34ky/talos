@@ -1,0 +1,51 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: prometheus-pve-exporter
+  namespace: prometheus-pve-exporter
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: prometheus-pve-exporter
+      version: 4.0.0
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    global:
+      stopAll: false
+    TZ: Europe/Brussels
+    resources:
+      requests:
+        cpu: 10m
+    # Read-only API token: user ${PVE_USER} with role PVEAuditor on "/".
+    pve:
+      credentials:
+        user: ${PVE_USER}
+        tokenName: ${PVE_TOKEN_NAME}
+        tokenValue: ${PVE_TOKEN_VALUE}
+      general:
+        target: 192.168.1.48 # same host as ext-prox
+        verifySsl: false # Proxmox self-signed certificate
+    configmap:
+      dashboard:
+        enabled: false # no Grafana in this cluster

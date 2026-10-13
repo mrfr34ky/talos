@@ -1,0 +1,173 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+  namespace: kube-prometheus-stack
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: 92.3.1
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    crds:
+      enabled: true
+      upgradeJob:
+        enabled: true
+        forceConflicts: true
+    cleanPrometheusOperatorObjectNames: true
+
+    # Needed for the Alerts badge (alertmanager_alerts) and, later, the Watchdog heartbeat.
+    # No AlertmanagerConfig is wired in yet, so the chart's default config is used:
+    # everything goes to the "null" receiver until a notification channel is added.
+    alertmanager:
+      enabled: true
+      ingress:
+        enabled: true
+        ingressClassName: internal
+        annotations:
+          cert-manager.io/cluster-issuer: domain-0-le-prod
+          cert-manager.io/private-key-rotation-policy: Always
+        hosts:
+          - alertmanager.${DOMAIN_0}
+        paths:
+          - /
+        pathType: Prefix
+        tls:
+          - secretName: alertmanager-tls-0
+            hosts:
+              - alertmanager.${DOMAIN_0}
+      alertmanagerSpec:
+        externalUrl: https://alertmanager.${DOMAIN_0}
+        # Use app/alertmanagerconfig.yaml as the global config (no namespace matcher)
+        alertmanagerConfiguration:
+          name: alertmanager
+        # Silences + notification log only; tiny and node-local is fine
+        storage:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: openebs-hostpath
+              resources:
+                requests:
+                  storage: 1Gi
+
+    # Talos runs etcd as a host service, not a pod: select the kube-apiserver
+    # static pods to get the control-plane node IPs (metrics on :2381, see talos/patches/control-plane/20-etcd.yaml)
+    kubeEtcd:
+      service:
+        selector:
+          component: kube-apiserver
+    kubeProxy:
+      enabled: false
+
+    # Kubernetes 1.33+ deprecates v1 Endpoints. Keep both while migrating so the
+    # operator labels its Endpoints with skip-mirror (no duplicate kubelet targets).
+    prometheusOperator:
+      kubeletEndpointsEnabled: true
+      kubeletEndpointSliceEnabled: true
+
+    prometheus:
+      ingress:
+        enabled: true
+        ingressClassName: internal
+        annotations:
+          cert-manager.io/cluster-issuer: domain-0-le-prod
+          cert-manager.io/private-key-rotation-policy: Always
+        hosts:
+          - prometheus.${DOMAIN_0}
+        paths:
+          - /
+        pathType: Prefix
+        tls:
+          - secretName: prometheus-tls-0
+            hosts:
+              - prometheus.${DOMAIN_0}
+      prometheusSpec:
+        externalUrl: https://prometheus.${DOMAIN_0}
+        podMonitorSelectorNilUsesHelmValues: false
+        probeSelectorNilUsesHelmValues: false
+        ruleSelectorNilUsesHelmValues: false
+        scrapeConfigSelectorNilUsesHelmValues: false
+        serviceMonitorSelectorNilUsesHelmValues: false
+        serviceDiscoveryRole: EndpointSlice
+        enableAdminAPI: true
+        walCompression: true
+        enableFeatures:
+          - memory-snapshot-on-shutdown
+        # Prometheus metrics retention time in PV
+        retention: 14d
+        retentionSize: 50GB
+        # External labels to add to any time series or
+        # alerts when communicating with external systems
+        externalLabels:
+          cluster: cluster_main
+          env: prod
+        # High availability
+        replicas: 1
+        resources:
+          requests:
+            cpu: 25m
+            memory: 500Mi
+          limits:
+            memory: 2000Mi
+        # Without this the TSDB lives in an emptyDir and is wiped on every restart.
+        # openebs-hostpath instead of Longhorn (the default class): no replica /
+        # instance-manager I/O for a constantly-writing, rebuildable dataset.
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: openebs-hostpath
+              resources:
+                requests:
+                  storage: 60Gi
+
+    prometheus-node-exporter:
+      fullnameOverride: node-exporter
+      prometheus:
+        monitor:
+          enabled: true
+          relabelings:
+            - action: replace
+              regex: (.*)
+              replacement: $1
+              sourceLabels: ["__meta_kubernetes_pod_node_name"]
+              targetLabel: kubernetes_node
+    kube-state-metrics:
+      fullnameOverride: kube-state-metrics
+      # metricLabelsAllowlist:
+      #   - pods=[*]
+      #   - deployments=[*]
+      #   - persistentvolumeclaims=[*]
+      prometheus:
+        monitor:
+          enabled: true
+          relabelings:
+            - action: replace
+              regex: (.*)
+              replacement: $1
+              sourceLabels: ["__meta_kubernetes_pod_node_name"]
+              targetLabel: kubernetes_node
+    grafana:
+      enabled: false
+      forceDeployDashboards: true
+      defaultDashboardsEnabled: true
+      forceDeployDatasources: true

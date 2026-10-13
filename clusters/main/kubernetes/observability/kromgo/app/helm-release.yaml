@@ -1,0 +1,144 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kromgo
+  namespace: kromgo
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: kromgo
+      version: 4.0.0
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    TZ: Europe/Brussels
+    # Chart default KROMGO_PROMETHEUS_URL already targets
+    # prometheus-operated.kube-prometheus-stack.svc.cluster.local:9090
+    ingress:
+      main:
+        enabled: true
+        ingressClassName: external
+        integrations:
+          traefik:
+            enabled: true
+          certManager:
+            enabled: true
+            certificateIssuer: domain-0-le-prod
+          nginx:
+            enabled: false
+        hosts:
+          - host: kromgo.${DOMAIN_0}
+            paths:
+              - path: /
+                pathType: Prefix
+
+    # Public endpoints: /badges/<id> (SVG) or /badges/<id>?format=shields (shields.io endpoint JSON).
+    # The gallery at / lists every badge with a copy-paste snippet. `defaults` come from the chart.
+    kromgo:
+      badges:
+        - id: talos_version
+          query: label_replace(node_os_info{name="Talos"}, "version_id", "$1", "version_id", "v(.+)")
+          title: Talos
+          icon: si:talos
+          valueExpr: labels["version_id"]
+          colorExpr: '"blue"'
+
+        - id: kubernetes_version
+          query: label_replace(kubernetes_build_info{service="kubernetes"}, "git_version", "$1", "git_version", "v(.+)")
+          title: Kubernetes
+          icon: si:kubernetes
+          valueExpr: labels["git_version"]
+          colorExpr: '"blue"'
+
+        - id: flux_version
+          query: label_replace(flux_instance_info, "revision", "$1", "revision", "v(.+)@sha256:.+")
+          title: Flux
+          icon: si:flux
+          valueExpr: labels["revision"]
+          colorExpr: '"blue"'
+
+        # truenas_info: TrueNAS cron job -> node-exporter textfile (see scrapeconfig.yaml)
+        - id: truenas_version
+          query: max by (version) (truenas_info)
+          title: TrueNAS
+          icon: si:truenas
+          valueExpr: labels["version"]
+          colorExpr: '"blue"'
+
+        # pve_version_info comes from prometheus-pve-exporter
+        - id: proxmox_version
+          query: max by (version) (pve_version_info)
+          title: Proxmox
+          icon: si:proxmox
+          valueExpr: labels["version"]
+          colorExpr: '"blue"'
+
+        - id: cluster_node_count
+          query: sum(kube_node_status_condition{condition="Ready",status="true"})
+          colorExpr: 'result > 0 ? "green" : "red"'
+          title: Nodes
+
+        - id: cluster_pod_count
+          query: sum(kube_pod_status_phase{phase="Running"})
+          colorExpr: 'result > 0 ? "green" : "red"'
+          title: Pods
+
+        - id: cluster_cpu_usage
+          query: round(avg(instance:node_cpu_utilisation:rate5m{pod!=""}) * 100, 0.1)
+          valueExpr: string(result) + "%"
+          colorExpr: 'colorScale(result, [35.0, 75.0], ["green", "orange", "red"])'
+          title: CPU
+
+        - id: cluster_memory_usage
+          query: round(sum(node_memory_MemTotal_bytes{pod!=""} - node_memory_MemAvailable_bytes{pod!=""}) / sum(node_memory_MemTotal_bytes{pod!=""}) * 100, 0.1)
+          valueExpr: string(result) + "%"
+          colorExpr: 'colorScale(result, [35.0, 75.0], ["green", "orange", "red"])'
+          title: Memory
+
+        # Zigbee plug in front of the UPS, via Home Assistant (see scrapeconfig.yaml).
+        # 10m average so the badge doesn't jump with every sample. Thresholds from 7 days of
+        # HA history (Oct 2026): avg 208W, p95 of hourly means 217W, peak 259W.
+        - id: cluster_power_usage
+          query: round(avg_over_time(homeassistant_sensor_power_w{entity="sensor.basement_ups_power"}[10m]))
+          valueExpr: string(result) + "W"
+          colorExpr: 'colorScale(result, [230.0, 260.0], ["green", "orange", "red"])'
+          title: Power
+
+        - id: cluster_age_days
+          query: round((time() - min(kube_node_created)) / 86400)
+          valueExpr: string(result) + "d"
+          colorExpr: 'colorScale(result, [180.0, 360.0], ["green", "orange", "red"])'
+          title: Age
+
+        - id: cluster_uptime_days
+          query: round(avg(node_time_seconds{pod!=""} - node_boot_time_seconds{pod!=""}) / 86400)
+          valueExpr: string(result) + "d"
+          colorExpr: 'colorScale(result, [180.0, 360.0], ["green", "orange", "red"])'
+          title: Uptime
+
+        # Firing warning/critical alerts. Watchdog and InfoInhibitor are severity "none", so they
+        # are excluded; `or vector(0)` keeps the badge at 0 instead of empty when nothing fires.
+        - id: cluster_alert_count
+          query: count(ALERTS{alertstate="firing", severity!~"none|info"}) or vector(0)
+          colorExpr: 'result < 1 ? "green" : "red"'
+          title: Alerts

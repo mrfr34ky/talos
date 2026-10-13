@@ -1,0 +1,14 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: kube-prometheus-stack
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: openebs # Prometheus/Alertmanager PVCs use openebs-hostpath
+  interval: 10m
+  path: clusters/main/kubernetes/observability/kube-prometheus-stack/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: cluster

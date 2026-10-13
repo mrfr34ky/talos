@@ -1,0 +1,57 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/scrapeconfig_v1alpha1.json
+# node-exporter running as a TrueNAS custom app. Its textfile collector serves
+# truenas_info{version="..."}, written by a TrueNAS cron job, for the kromgo badge.
+# The job is deliberately not "node-exporter": the default node-exporter alert rules
+# select that job, and ZFS ARC would keep NodeMemoryHighUtilization firing.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: truenas-node-exporter
+  namespace: kube-prometheus-stack
+spec:
+  staticConfigs:
+    - targets:
+        - 192.168.1.49:9100 # same host as ext-nas
+  metricsPath: /metrics
+  relabelings:
+    - action: replace
+      targetLabel: job
+      replacement: truenas-node-exporter
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/scrapeconfig_v1alpha1.json
+# smartctl_exporter running as a privileged TrueNAS custom app. It skips disks in standby
+# (--smartctl.powermode-check=standby default), so scrapes don't spin disks up.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: truenas-smartctl
+  namespace: kube-prometheus-stack
+spec:
+  staticConfigs:
+    - targets:
+        - 192.168.1.49:9633 # same host as ext-nas
+  metricsPath: /metrics
+  relabelings:
+    - action: replace
+      targetLabel: job
+      replacement: truenas-smartctl
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/scrapeconfig_v1alpha1.json
+# Home Assistant's prometheus integration, configured in HA's configuration.yaml with
+# requires_auth: false and a filter that only exports sensor.basement_ups_power
+# (the zigbee plug in front of the UPS) for the kromgo power badge. HA is LAN-only.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: home-assistant
+  namespace: kube-prometheus-stack
+spec:
+  staticConfigs:
+    - targets:
+        - home-assistant.home-assistant.svc.cluster.local:8123
+  metricsPath: /api/prometheus
+  relabelings:
+    - action: replace
+      targetLabel: job
+      replacement: home-assistant

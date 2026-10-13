@@ -1,0 +1,149 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: crowdsec
+  namespace: crowdsec
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: crowdsec
+      version: 0.24.2
+      sourceRef:
+        kind: HelmRepository
+        name: crowdsec
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    # Talos runs containerd
+    container_runtime: containerd
+    config:
+      parsers:
+        s01-parse:
+          # Seerr renamed its failed sign-in messages and adds a userId field, so the
+          # hub parser (LePresidente/jellyseerr-logs) misses Jellyfin-credential failures
+          # and failures for existing accounts. This parser matches the current messages
+          # and feeds the hub's jellyseerr brute-force / user-enumeration scenarios.
+          seerr-logs.yaml: |
+            name: custom/seerr-logs
+            description: "Parse Seerr failed sign-ins (current message format)"
+            filter: "evt.Parsed.program == 'jellyseerr'"
+            onsuccess: next_stage
+            nodes:
+              - grok:
+                  pattern: 'Failed sign-in attempt using invalid \S+ password \{"ip":"(?:::ffff:)?%{IP:source_ip}","email":"%{DATA:username}"'
+                  apply_on: message
+                  statics:
+                    - meta: log_type
+                      value: jellyseerr_failed_auth
+              - grok:
+                  pattern: 'Failed sign-in attempt from user with incorrect \S+ credentials \{"account":\{"ip":"(?:::ffff:)?%{IP:source_ip}","email":"%{DATA:username}"'
+                  apply_on: message
+                  statics:
+                    - meta: log_type
+                      value: jellyseerr_failed_auth
+            statics:
+              - meta: service
+                value: jellyseerr
+              - meta: source_ip
+                expression: evt.Parsed.source_ip
+              - meta: user
+                expression: evt.Parsed.username
+        s02-enrich:
+          # The Memories app requests one thumbnail URL per photo. Photos without a thumbnail
+          # (some videos, HEIC/RAW, ...) answer 404, and 10+ distinct 404s in a few seconds
+          # trips crowdsecurity/http-probing. Fast scrolling can also trip
+          # crowdsecurity/http-crawl-non-statics with the 200s. The hub's nextcloud-whitelist
+          # covers the Photos app but not Memories. Only GETs on the Nextcloud router are
+          # whitelisted, so failed logins (401) and probing elsewhere still count.
+          nextcloud-memories-whitelist.yaml: |
+            name: custom/nextcloud-memories-whitelist
+            description: "Whitelist Nextcloud Memories thumbnail/API requests"
+            filter: "evt.Meta.service == 'http' && evt.Meta.log_type in ['http_access-log', 'http_error-log']"
+            whitelist:
+              reason: "Nextcloud Memories previews"
+              expression:
+                - evt.Meta.traefik_router_name startsWith 'nextcloud-' && evt.Meta.http_verb == 'GET' && evt.Meta.http_status in ['200', '304', '404'] && evt.Meta.http_path matches '^(/index\\.php)?/apps/memories/api/'
+    agent:
+      # poll_without_inotify: the files in /var/log/containers are symlinks. With inotify the
+      # agent can't follow kubelet's log rotation (every 10 MiB) and silently stops reading
+      # that pod until it restarts. Polling follows the rotation. traefik-external rotates
+      # the most, but it's set on every entry.
+      # Read the WAN-facing Traefik's access logs (needs accessLog.enabled on traefik-external)
+      acquisition:
+        - namespace: traefik-external
+          podName: traefik-external-*
+          program: traefik
+          poll_without_inotify: true
+        - namespace: vaultwarden
+          podName: vaultwarden-*
+          program: vaultwarden
+          poll_without_inotify: true
+        # Nextcloud writes its log to a file on the data volume, so a "logtail" sidecar in
+        # the Nextcloud pod streams it to stdout. This reads every nextcloud-* pod; lines
+        # from nginx, redis, cnpg... just don't parse. "program" must be nextcloud.
+        - namespace: nextcloud
+          podName: nextcloud-*
+          program: nextcloud
+          poll_without_inotify: true
+        - namespace: seerr
+          podName: seerr-*
+          program: jellyseerr
+          poll_without_inotify: true
+        - namespace: guacamole
+          podName: guacamole-*
+          program: apache-guacamole
+          poll_without_inotify: true
+      env:
+        - name: PARSERS
+          value: "crowdsecurity/cri-logs crowdsecurity/whitelists"
+        - name: COLLECTIONS
+          value: "crowdsecurity/traefik Dominic-Wagner/vaultwarden crowdsecurity/nextcloud firix/authentik LePresidente/jellyseerr corvese/apache-guacamole"
+        # DISABLE_PARSERS=crowdsecurity/whitelists was a test setting. Leaving the
+        # whitelist active stops CrowdSec from banning private IPs: your LAN, and the
+        # cloudflared pod if real client IPs don't reach the logs.
+      resources:
+        requests:
+          cpu: 25m  
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+    lapi:
+      # The Metabase dashboard was removed from the chart; use the CrowdSec Console
+      # (app.crowdsec.net) via the enrollment key below instead.
+      env:
+        - name: DISABLE_ONLINE_API
+          value: "false"
+        - name: ENROLL_KEY
+          value: "${CSKEY}"
+        - name: ENROLL_INSTANCE_NAME
+          value: "cluster"
+        # Registers the "traefik" bouncer with this key at startup, so a fresh cluster
+        # doesn't need the manual `cscli bouncers add`. Must match the key in the
+        # traefik-external crowdsec middleware.
+        - name: BOUNCER_KEY_traefik
+          value: "${CROWDSEC_BOUNCER_KEY}"  
+      resources:
+        requests:
+          cpu: 25m    
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
