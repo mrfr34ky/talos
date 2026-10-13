@@ -31,6 +31,30 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  # gatus-sidecar (observability/gatus) uses this IngressClass annotation as the default for every
+  # "external" Ingress. The chart can't annotate its IngressClass, so patch the rendered object.
+  # Normal (public) DNS, so these checks go through Cloudflare and the tunnel like real visitors.
+  # The status page is public: hide hostnames, URLs and errors (errors can name other hosts).
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: IngressClass
+              name: external
+            patch: |
+              apiVersion: networking.k8s.io/v1
+              kind: IngressClass
+              metadata:
+                name: external
+                annotations:
+                  gatus.home-operations.com/endpoint: |
+                    group: Public
+                    ui:
+                      hide-hostname: true
+                      hide-url: true
+                      hide-errors: true
+                    alerts:
+                      - type: discord
   values:
     deployment:
       replicas: 2

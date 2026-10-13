@@ -50,8 +50,11 @@ spec:
         main:
           enabled: true
           ingressClassName: internal
-          #annotations:
-          #  nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+          annotations:
+            # Gatus: the SLZB web UI answers 401 (HTTP auth prompt) when it's up
+            gatus.home-operations.com/endpoint: |
+              conditions:
+                - "[STATUS] == any(200, 401)"
           integrations:
             traefik:
               enabled: true

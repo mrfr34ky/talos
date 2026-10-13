@@ -32,6 +32,32 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  # gatus-sidecar (observability/gatus) uses this IngressClass annotation as the default for every
+  # "internal" Ingress. The chart can't annotate its IngressClass, so patch the rendered object.
+  # Pods resolve via public DNS, where LAN-only hosts don't exist, so Gatus asks Blocky instead.
+  # The status page is public: hide hostnames, URLs and errors (errors can name other hosts).
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: IngressClass
+              name: internal
+            patch: |
+              apiVersion: networking.k8s.io/v1
+              kind: IngressClass
+              metadata:
+                name: internal
+                annotations:
+                  gatus.home-operations.com/endpoint: |
+                    group: Internal
+                    client:
+                      dns-resolver: udp://${BLOCKY_IP}:53
+                    ui:
+                      hide-hostname: true
+                      hide-url: true
+                      hide-errors: true
+                    alerts:
+                      - type: discord
   values:
     deployment:
       replicas: 2
