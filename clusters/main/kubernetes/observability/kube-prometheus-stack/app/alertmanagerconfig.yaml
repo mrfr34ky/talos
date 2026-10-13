@@ -1,0 +1,111 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/alertmanagerconfig_v1alpha1.json
+# Global Alertmanager config (alertmanagerSpec.alertmanagerConfiguration.name: alertmanager), so
+# no namespace matcher is added. It replaces the chart's default config, including its inhibit rules,
+# which are reproduced below.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: alertmanager
+  namespace: kube-prometheus-stack
+spec:
+  route:
+    groupBy: ["alertname", "namespace"]
+    groupInterval: 10m
+    groupWait: 1m
+    receiver: discord
+    repeatInterval: 12h
+    routes:
+      # Dead man's switch: the always-firing Watchdog pings healthchecks.io every ~4-5m.
+      # If the pings stop (cluster, alerting or internet down), healthchecks.io alerts Discord.
+      # Must stay above the severity=none route below (Watchdog is severity none).
+      # groupInterval 1m + repeatInterval 4m: with both at 5m, repeats can slip to every 10m.
+      - receiver: heartbeat
+        groupWait: 0s
+        groupInterval: 1m
+        repeatInterval: 4m
+        matchers:
+          - name: alertname
+            value: Watchdog
+            matchType: =
+      - receiver: "null"
+        matchers:
+          - name: alertname
+            value: InfoInhibitor
+            matchType: =
+      - receiver: "null"
+        matchers:
+          - name: severity
+            value: info|none
+            matchType: =~
+  inhibitRules:
+    - sourceMatch:
+        - name: severity
+          value: critical
+          matchType: =
+      targetMatch:
+        - name: severity
+          value: warning|info
+          matchType: =~
+      equal: ["namespace", "alertname"]
+    - sourceMatch:
+        - name: severity
+          value: warning
+          matchType: =
+      targetMatch:
+        - name: severity
+          value: info
+          matchType: =
+      equal: ["namespace", "alertname"]
+    - sourceMatch:
+        - name: alertname
+          value: InfoInhibitor
+          matchType: =
+      targetMatch:
+        - name: severity
+          value: info
+          matchType: =
+      equal: ["namespace"]
+    # TrueNAS (prometheusrule-truenas.yaml): the specific "down" alerts replace the chart's generic
+    # TargetDown for the same job, and TrueNASDown implies smartctl_exporter is unreachable too.
+    - sourceMatch:
+        - name: alertname
+          value: TrueNASDown|SmartctlExporterDown
+          matchType: =~
+      targetMatch:
+        - name: alertname
+          value: TargetDown
+          matchType: =
+      equal: ["job"]
+    - sourceMatch:
+        - name: alertname
+          value: TrueNASDown
+          matchType: =
+      targetMatch:
+        - name: alertname
+          value: SmartctlExporterDown
+          matchType: =
+  receivers:
+    - name: "null"
+    - name: heartbeat
+      webhookConfigs:
+        - urlSecret:
+            name: alertmanager-secret
+            key: HEARTBEAT_URL
+          # A "resolved" Watchdog (e.g. Prometheus gone) must not count as a healthy ping
+          sendResolved: false
+    - name: discord
+      discordConfigs:
+        - apiURL:
+            name: alertmanager-secret
+            key: DISCORD_WEBHOOK_URL
+          sendResolved: true
+          username: Alertmanager
+          title: >-
+            [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}]
+            {{ .CommonLabels.alertname }}
+          message: |-
+            {{- range .Alerts }}
+            **{{ if eq .Status "firing" }}🔥{{ else }}✅{{ end }} {{ .Labels.alertname }}**{{ with .Labels.namespace }} · `{{ . }}`{{ end }}{{ with .Labels.severity }} · {{ . }}{{ end }}
+            {{ with .Annotations.description }}{{ . }}{{ else }}{{ with .Annotations.summary }}{{ . }}{{ else }}{{ with .Annotations.message }}{{ . }}{{ else }}No description{{ end }}{{ end }}{{ end }}
+            {{ end }}

@@ -1,0 +1,4 @@
+# `clustertool init` re-copies any embedded file that is missing, so deleted
+# nginx folders come back on the next init. Hide them from Flux instead.
+clusters/*/kubernetes/networking/nginx-internal/
+clusters/*/kubernetes/networking/nginx-external/

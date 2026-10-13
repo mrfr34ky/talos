@@ -1,0 +1,162 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: guacamole
+  namespace: guacamole
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: guacamole
+      version: 18.0.0
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    global:
+      stopAll: false    
+    TZ: Europe/Brussels
+    resources:
+      requests:
+        cpu: 10m
+    credentials:
+      s3:
+        type: s3
+        url: "${S3URL}"
+        bucket: "${S3PREFIX}-guacamole"
+        accessKey: "${S3ID}"
+        secretKey: "${S3KEY}"
+        encrKey: "${S3KEY}"
+    guacamole:
+      totp: 
+        TOTP_ENABLED: true
+        TOTP_ISSUER: Apache Guacamole
+        TOTP_DIGITS: 6
+        TOTP_PERIOD: 30
+        TOTP_MODE: sha1
+      proxy:
+        # Tomcat RemoteIpValve: take the client IP from X-Forwarded-For when the request
+        # comes from a private address (Traefik, cloudflared). Without it Guacamole sees
+        # the Traefik pod as the client, so CrowdSec gets a whitelisted IP and Guacamole's
+        # built-in brute-force ban (on by default) would ban Traefik itself.
+        REMOTE_IP_VALVE_ENABLED: true
+    workload:
+      main:
+        podSpec:
+          containers:
+            main:
+              env:
+                # Guacamole's built-in ban blocks an IP after 5 failures and stops logging
+                # its attempts, while CrowdSec's scenario needs a 6th failure to trigger.
+                # At 10, CrowdSec bans first (at the edge, for every app, 4h); Guacamole's
+                # own ban stays as a backstop for slower attempts.
+                BAN_MAX_INVALID_ATTEMPTS: "10"
+    # Guacamole's default log lines have no date, which CrowdSec's
+    # corvese/apache-guacamole-logs parser requires. This logback.xml adds an
+    # ISO 8601 UTC timestamp; everything else stays as default (INFO, to stdout).
+    configmap:
+      logback:
+        enabled: true
+        data:
+          logback.xml: |
+            <configuration>
+                <appender name="GUAC-DEFAULT" class="ch.qos.logback.core.ConsoleAppender">
+                    <encoder>
+                        <pattern>%date{"yyyy-MM-dd'T'HH:mm:ss,SSSXXX", UTC} [%thread] %-5level %logger{36} - %msg%n</pattern>
+                    </encoder>
+                </appender>
+                <root level="info">
+                    <appender-ref ref="GUAC-DEFAULT" />
+                </root>
+            </configuration>
+    persistence:
+      # The image links files from GUACAMOLE_HOME (/etc/guacamole) into the
+      # Guacamole home it generates at startup, so logback.xml is picked up there.
+      logback:
+        enabled: true
+        type: configmap
+        objectName: logback
+        targetSelector:
+          main:
+            main:
+              mountPath: /etc/guacamole/logback.xml
+              subPath: logback.xml
+              readOnly: true
+      recordings:
+        volsync:
+          - name: b2
+            type: restic
+            credentials: s3
+            dest:
+              enabled: true                          
+            src:
+              enabled: true
+              trigger:
+                schedule: 17 0 * * *
+      drive:
+        volsync:
+          - name: b2
+            type: restic
+            credentials: s3
+            dest:
+              enabled: true                          
+            src:
+              enabled: true
+              trigger:
+                schedule: 24 0 * * *             
+    cnpg:
+      main:
+        password: ${GUACAMOLE_CNPG_PWD}
+        cluster:
+          singleNode: true
+        #mode: recovery
+        backups:
+          enabled: true
+          credentials: s3
+          scheduledBackups:
+            - name: daily-backup
+              schedule: "0 31 0 * * *"
+              backupOwnerReference: self
+              immediate: true
+              suspend: false
+          revision: "2"
+          retentionPolicy: "7d"
+        recovery:
+          method: object_store
+          credentials: s3
+          revision: "1"    
+    ingress:
+        main:
+          enabled: true
+          ingressClassName: external
+          integrations:
+            traefik:
+              enabled: true
+            certManager:
+              enabled: true
+              certificateIssuer: domain-0-le-prod
+            nginx:
+              enabled: false   
+          hosts:
+            - host: avoc.${DOMAIN_0}
+              paths:
+                - path: /
+                  pathType: Prefix

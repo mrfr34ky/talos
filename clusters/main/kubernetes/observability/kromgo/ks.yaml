@@ -1,0 +1,14 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: kromgo
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: kube-prometheus-stack # badges query prometheus-operated
+  interval: 10m
+  path: clusters/main/kubernetes/observability/kromgo/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: cluster

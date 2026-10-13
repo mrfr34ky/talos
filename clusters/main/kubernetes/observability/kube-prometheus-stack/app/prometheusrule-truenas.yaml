@@ -1,0 +1,190 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+# TrueNAS (192.168.1.49) alerts; warning/critical go to Discord (alertmanagerconfig.yaml).
+# Sources, both TrueNAS custom apps scraped via scrapeconfig.yaml:
+# - node-exporter, plus textfile metrics from scripts/truenas/truenas-textfile.sh (cron, every 5m)
+# - smartctl_exporter. Multi-Report still sends the detailed daily SMART email; these fire in between.
+# SMART alerts multiply by smartctl_device (always 1) only to add model/serial labels for the message.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: truenas
+  namespace: kube-prometheus-stack
+spec:
+  groups:
+    - name: truenas
+      rules:
+        - alert: TrueNASDown
+          expr: up{job="truenas-node-exporter"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: TrueNAS is unreachable
+            description: >-
+              node-exporter on {{ $labels.instance }} has not answered for 5 minutes.
+              TrueNAS, and the storage it serves, may be down.
+
+        - alert: TrueNASTextfileStale
+          expr: >-
+            (time() - node_textfile_mtime_seconds{job="truenas-node-exporter", file=~".*truenas.prom"} > 900)
+            or node_textfile_scrape_error{job="truenas-node-exporter"} == 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: TrueNAS textfile metrics are stale
+            description: >-
+              truenas.prom has not been updated for over 15 minutes, or node-exporter cannot read it.
+              Check the TrueNAS cron job running truenas-textfile.sh. The version badge and the
+              pool capacity alerts depend on it.
+
+        - alert: ZfsPoolNotOnline
+          expr: node_zfs_zpool_state{job="truenas-node-exporter", state!="online"} == 1
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: ZFS pool {{ $labels.zpool }} is {{ $labels.state }}
+            description: >-
+              ZFS pool {{ $labels.zpool }} on TrueNAS is {{ $labels.state }}.
+              Check zpool status {{ $labels.zpool }} and the Storage page in TrueNAS.
+
+        - alert: ZfsPoolFillingUp
+          expr: >-
+            100 * truenas_zpool_allocated_bytes{job="truenas-node-exporter"}
+            / truenas_zpool_size_bytes{job="truenas-node-exporter"} > 80
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: ZFS pool {{ $labels.zpool }} is {{ $value | humanize }}% full
+            description: >-
+              ZFS pool {{ $labels.zpool }} is {{ $value | humanize }}% allocated.
+              ZFS slows down noticeably above about 80%.
+
+        - alert: ZfsPoolAlmostFull
+          expr: >-
+            100 * truenas_zpool_allocated_bytes{job="truenas-node-exporter"}
+            / truenas_zpool_size_bytes{job="truenas-node-exporter"} > 90
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: ZFS pool {{ $labels.zpool }} is {{ $value | humanize }}% full
+            description: >-
+              ZFS pool {{ $labels.zpool }} is {{ $value | humanize }}% allocated.
+              Free up space or expand the pool before writes start failing.
+
+    - name: truenas-smart
+      rules:
+        - alert: SmartctlExporterDown
+          expr: up{job="truenas-smartctl"} == 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: smartctl_exporter on TrueNAS is down
+            description: >-
+              smartctl_exporter on {{ $labels.instance }} has not answered for 15 minutes,
+              so SMART alerts are not being evaluated. Check the smartctl-exporter app on TrueNAS.
+
+        - alert: SmartDeviceFailing
+          expr: >-
+            smartctl_device_smart_status{job="truenas-smartctl"}
+            * on (device, instance) group_left (model_name, serial_number) smartctl_device{job="truenas-smartctl"}
+            == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: SMART health check FAILED on {{ $labels.device }}
+            description: >-
+              Disk {{ $labels.device }} ({{ $labels.model_name }}, serial {{ $labels.serial_number }})
+              reports a failing SMART overall-health status. Replace it as soon as possible.
+
+        - alert: SmartBadSectorsIncreasing
+          expr: >-
+            delta(smartctl_device_attribute{job="truenas-smartctl", attribute_value_type="raw",
+              attribute_name=~"Reallocated_Sector_Ct|Current_Pending_Sector|Offline_Uncorrectable|Reported_Uncorrect"}[1d])
+            * on (device, instance) group_left (model_name, serial_number) smartctl_device{job="truenas-smartctl"}
+            > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.attribute_name }} increased on {{ $labels.device }}"
+            description: >-
+              {{ $labels.attribute_name }} on {{ $labels.device }} ({{ $labels.model_name }},
+              serial {{ $labels.serial_number }}) went up by about {{ $value | humanize }} in the last 24h.
+              Check the Multi-Report email and keep an eye on this disk.
+
+        - alert: SmartSelfTestErrors
+          expr: >-
+            delta(smartctl_device_self_test_log_error_count{job="truenas-smartctl"}[1d])
+            * on (device, instance) group_left (model_name, serial_number) smartctl_device{job="truenas-smartctl"}
+            > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: SMART self-test errors on {{ $labels.device }}
+            description: >-
+              A SMART self-test ({{ $labels.self_test_log_type }} log) on {{ $labels.device }}
+              ({{ $labels.model_name }}, serial {{ $labels.serial_number }}) logged a new error in the last 24h.
+
+        - alert: NvmeCriticalWarning
+          expr: >-
+            smartctl_device_critical_warning{job="truenas-smartctl"}
+            * on (device, instance) group_left (model_name, serial_number) smartctl_device{job="truenas-smartctl"}
+            > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: NVMe critical warning on {{ $labels.device }}
+            description: >-
+              NVMe drive {{ $labels.device }} ({{ $labels.model_name }}, serial {{ $labels.serial_number }})
+              reports critical warning flags {{ $value }}.
+
+        - alert: NvmeMediaErrors
+          expr: >-
+            delta(smartctl_device_media_errors{job="truenas-smartctl"}[1d])
+            * on (device, instance) group_left (model_name, serial_number) smartctl_device{job="truenas-smartctl"}
+            > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: NVMe media errors on {{ $labels.device }}
+            description: >-
+              NVMe drive {{ $labels.device }} ({{ $labels.model_name }}, serial {{ $labels.serial_number }})
+              logged new media/data integrity errors in the last 24h.
+
+        - alert: SsdWearHigh
+          expr: >-
+            smartctl_device_percentage_used{job="truenas-smartctl"}
+            * on (device, instance) group_left (model_name, serial_number) smartctl_device{job="truenas-smartctl"}
+            >= 90
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: SSD {{ $labels.device }} is {{ $value }}% worn
+            description: >-
+              {{ $labels.device }} ({{ $labels.model_name }}, serial {{ $labels.serial_number }}) has used
+              {{ $value }}% of its rated endurance. Plan a replacement.
+
+        # HDDs (rotation_rate > 0) above 50°C, anything above 70°C (NVMe/SSDs run hotter)
+        - alert: DiskTemperatureHigh
+          expr: >-
+            (
+              smartctl_device_temperature{job="truenas-smartctl", temperature_type="current"}
+              and on (device, instance) smartctl_device_rotation_rate{job="truenas-smartctl"} > 0
+            ) > 50
+            or smartctl_device_temperature{job="truenas-smartctl", temperature_type="current"} > 70
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Disk {{ $labels.device }} is at {{ $value }}°C
+            description: >-
+              Disk {{ $labels.device }} on TrueNAS has been at {{ $value }}°C for 15 minutes.
+              Check cooling and airflow.
