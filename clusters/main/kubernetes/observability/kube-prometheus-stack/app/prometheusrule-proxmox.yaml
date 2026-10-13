@@ -1,0 +1,74 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+# Proxmox alerts from prometheus-pve-exporter (observability/prometheus-pve-exporter);
+# warning/critical go to Discord (alertmanagerconfig.yaml).
+# Host-level events Prometheus can't see (disk/SMART on the Proxmox host, ZFS resilver/scrub, backups)
+# come from Proxmox's own notification system, which posts to Discord directly.
+# The Proxmox host itself going down takes this cluster with it; the healthchecks.io heartbeat covers that.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: proxmox
+  namespace: kube-prometheus-stack
+spec:
+  groups:
+    - name: proxmox
+      rules:
+        - alert: ProxmoxExporterDown
+          expr: up{job="prometheus-pve-exporter"} == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Proxmox metrics are unavailable
+            description: >-
+              prometheus-pve-exporter has failed to scrape the Proxmox API for 10 minutes
+              (exporter down, API unreachable, or the API token was revoked). Proxmox alerts are blind until fixed.
+
+        # VMs/containers with "Start at boot" that aren't running (e.g. TrueNAS or W11 stopped or crashed)
+        - alert: ProxmoxGuestNotRunning
+          expr: >-
+            (pve_up{job="prometheus-pve-exporter", id=~"qemu/.*|lxc/.*"}
+              * on (id) group_left (name) pve_guest_info{job="prometheus-pve-exporter"}) == 0
+            and on (id) pve_onboot_status{job="prometheus-pve-exporter"} == 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Proxmox guest {{ $labels.name }} is not running
+            description: >-
+              {{ $labels.name }} ({{ $labels.id }}) is set to start at boot but has not been running for 5 minutes.
+
+        # "nvme" is excluded: it holds the thick-provisioned Talos disk, so ZFS reports the full reservation
+        # as used (~100%) regardless of data. Free space inside Talos is covered by the node-exporter rules.
+        - alert: ProxmoxStorageFillingUp
+          expr: >-
+            label_replace(
+              100 * pve_disk_usage_bytes{job="prometheus-pve-exporter", id=~"storage/.*", id!~"storage/.+/nvme"}
+              / (pve_disk_size_bytes{job="prometheus-pve-exporter", id=~"storage/.*"} > 0),
+              "storage", "$1", "id", "storage/[^/]+/(.+)"
+            ) > 85
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: Proxmox storage {{ $labels.storage }} is {{ $value | humanize }}% full
+            description: >-
+              Proxmox storage {{ $labels.storage }} is {{ $value | humanize }}% used. For ZFS storages this includes
+              space reserved by thick-provisioned VM disks.
+
+        - alert: ProxmoxStorageAlmostFull
+          expr: >-
+            label_replace(
+              100 * pve_disk_usage_bytes{job="prometheus-pve-exporter", id=~"storage/.*", id!~"storage/.+/nvme"}
+              / (pve_disk_size_bytes{job="prometheus-pve-exporter", id=~"storage/.*"} > 0),
+              "storage", "$1", "id", "storage/[^/]+/(.+)"
+            ) > 95
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: Proxmox storage {{ $labels.storage }} is {{ $value | humanize }}% full
+            description: >-
+              Proxmox storage {{ $labels.storage }} is {{ $value | humanize }}% used. VMs on it may fail to write;
+              free up space or move disks.
