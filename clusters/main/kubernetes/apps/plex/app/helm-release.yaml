@@ -77,6 +77,10 @@ spec:
         main:
           enabled: true
           ingressClassName: internal
+          annotations:
+            # Gatus: "/" needs a Plex token (401); /identity is Plex's unauthenticated status endpoint
+            gatus.home-operations.com/endpoint: |
+              path: /identity
           integrations:
             traefik:
               enabled: true
@@ -84,7 +88,7 @@ spec:
               enabled: true
               certificateIssuer: domain-0-le-prod
             nginx:
-              enabled: false   
+              enabled: false
           hosts:
             - host: plex.${DOMAIN_0}
               paths:

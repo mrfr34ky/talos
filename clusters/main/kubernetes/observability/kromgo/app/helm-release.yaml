@@ -38,6 +38,12 @@ spec:
       main:
         enabled: true
         ingressClassName: external
+        annotations:
+          # Gatus: Cloudflare only lets the badge Worker (secret header) reach this host, so check it
+          # over the LAN instead (Blocky resolves it to traefik-external)
+          gatus.home-operations.com/endpoint: |
+            client:
+              dns-resolver: udp://${BLOCKY_IP}:53
         integrations:
           traefik:
             enabled: true
