@@ -47,6 +47,8 @@ spec:
         annotations:
           cert-manager.io/cluster-issuer: domain-0-le-prod
           cert-manager.io/private-key-rotation-policy: Always
+          # Authentik forward auth (needs an Alertmanager proxy provider on the embedded outpost)
+          traefik.ingress.kubernetes.io/router.middlewares: traefik-internal-authentik@kubernetescrd
         hosts:
           - alertmanager.${DOMAIN_0}
         paths:
@@ -92,6 +94,8 @@ spec:
         annotations:
           cert-manager.io/cluster-issuer: domain-0-le-prod
           cert-manager.io/private-key-rotation-policy: Always
+          # Authentik forward auth (needs a Prometheus proxy provider on the embedded outpost)
+          traefik.ingress.kubernetes.io/router.middlewares: traefik-internal-authentik@kubernetescrd
         hosts:
           - prometheus.${DOMAIN_0}
         paths:
