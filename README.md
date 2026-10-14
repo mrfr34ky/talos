@@ -1,6 +1,8 @@
-# 🚀 Kubernetes Cluster (Clustertool)
-
 <div align="center">
+
+# 🧊 Personal Talos Kubernetes Cluster · mrfr34ky
+
+*A self-hosted, GitOps-driven Kubernetes cluster built on Talos Linux and Proxmox VE, focused on reliability, observability, and clean automation.*
 
 [![Proxmox](https://img.shields.io/endpoint?url=https://badges.mrfr34ky.workers.dev/badges/proxmox_version?format=shields&style=for-the-badge&logo=proxmox&logoColor=white&label=%20)](https://www.proxmox.com/)&nbsp;&nbsp;
 [![TrueNAS](https://img.shields.io/endpoint?url=https://badges.mrfr34ky.workers.dev/badges/truenas_version?format=shields&style=for-the-badge&logo=truenas&logoColor=white&label=%20)](https://www.truenas.com/)&nbsp;&nbsp;
@@ -23,14 +25,180 @@
 
 </div>
 
-This repository contains a Kubernetes cluster bootstrapped with **TrueForge Clustertool**.
+---
 
-✨ What **TrueForge Clustertool** provides:
-- ⚙️ Bootstraps a **Talos Linux** Kubernetes cluster
-- 🔄 Installs **Flux** for GitOps-based cluster management
-- 📦 Delivers a minimal, reproducible, ready-to-use setup
+## 📌 Overview
 
-🌍 **TrueForge** is a community-driven organization building and maintaining awesome open-source projects.  
-Learn more at 👉 https://trueforge.org/
+This repository contains the full **GitOps-managed configuration** for my personal Kubernetes cluster.
+The cluster runs on **Talos Linux** and is fully declarative: every component, application, and configuration is defined in Git and continuously reconciled by **FluxCD**.
 
-🎯 The goal is a **simple, GitOps-driven Kubernetes cluster** with minimal manual effort.
+The cluster is a **single-node Talos Linux virtual machine on a Proxmox VE host**. TrueNAS runs as a separate VM on the same host and provides the network storage.
+The focus of this environment is learning, experimentation, and long-running homelab workloads rather than high availability.
+
+It was bootstrapped with [TrueForge Clustertool](https://trueforge.org/), and most applications are [TrueCharts](https://trueforge.org/) Helm charts.
+
+Key goals of this setup:
+
+* 🔁 **Reproducibility** – rebuild the entire cluster from Git
+* 🔒 **Immutability & Security** – minimal OS, no SSH, API-driven management, CrowdSec in front of everything public
+* 📈 **Observability** – metrics, alerts to Discord, and a public status page
+* 🤖 **Automation-first** – dependency updates are tested in CI and merged without manual intervention
+
+---
+
+## 🧠 Design Decisions
+
+### Why Proxmox VE?
+- One machine runs the Talos node next to TrueNAS and other VMs
+- The Talos VM can be restarted, reached from the console, or rebuilt without touching the rest of the host
+- Proxmox is monitored from the cluster as well, so host and VM problems alert in Discord too
+
+### Why Talos Linux?
+- Immutable, minimal OS reduces attack surface
+- No SSH or package manager
+- Fully API-driven, ideal for GitOps-based Kubernetes clusters
+
+### Why FluxCD?
+- Continuous reconciliation instead of one-shot deployments
+- Native Kubernetes integration, managed by the Flux Operator
+- Works seamlessly with SOPS for encrypted secrets
+
+### Why a Single-Node Cluster?
+- Simplifies operations and reduces complexity
+- Ideal for homelab and learning environments
+- Focuses on reproducibility rather than high availability: nightly offsite backups make a rebuild cheap
+
+---
+
+## 📡 Networking Assumptions
+
+This cluster assumes a **simple and reliable home network environment**.
+
+- The Talos VM is connected to the home network through a Proxmox bridge
+- No advanced routing, BGP, or multi-homing is assumed; Cilium is the CNI and MetalLB gives services their LAN IPs
+- Two Traefik instances: `traefik-internal` for LAN-only apps and `traefik-external` for public apps
+- Public apps are reached through a Cloudflare Tunnel into `traefik-external`
+- Blocky serves DNS for the internal hostnames
+- Remote access goes through Tailscale (subnet router and exit node)
+
+---
+
+## 🛡️ Security
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/crowdsecurity/crowdsec-docs/main/crowdsec-docs/static/img/crowdsec_logo.png" alt="CrowdSec" width="200"/>
+</div>
+
+Everything that is reachable from the internet is protected by **[CrowdSec](https://www.crowdsec.net/)**:
+
+~~~text
+Internet → Cloudflare (WAF) → Cloudflare Tunnel → traefik-external + CrowdSec bouncer → app
+~~~
+
+- The CrowdSec bouncer (a Traefik plugin) runs on every route of `traefik-external`, so it covers every external chart
+- The CrowdSec agent reads Traefik's access logs and the apps' login logs, and bans IPs that brute-force logins or probe for usernames
+- Fail-closed: if the bouncer can't load, Traefik drops the public routes instead of serving them unprotected
+- The CrowdSec community blocklist blocks known bad IPs before they ever reach a login page; the instance is enrolled in the CrowdSec Console
+- Bans for login attacks are posted to Discord
+- Admin UIs such as Prometheus and Alertmanager sit behind Authentik single sign-on
+
+---
+
+## 🧩 Core Components
+
+| Component                    | Description                                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Proxmox VE**               | Hypervisor that hosts the Talos VM, TrueNAS, and other VMs                                                 |
+| **Kubernetes**               | Container orchestration platform for running and managing workloads                                        |
+| **Talos Linux**              | Immutable, API-driven Linux distribution purpose-built for Kubernetes                                      |
+| **FluxCD**                   | GitOps operator used for continuous reconciliation of cluster state                                        |
+| **Mend Renovate**            | Automatically tracks and updates charts, container images, and dependencies                                |
+| **GitHub Actions**           | Installs every changed HelmRelease into a throwaway k3d cluster before an update is merged; merges one at a time, 10 minutes apart |
+| **SOPS**                     | Encryption of all secrets and credentials stored in Git, integrated with FluxCD                            |
+| **Clustertool**              | Bootstrap tool from TrueForge used to build the basic cluster structure and setup                          |
+| **CrowdSec**                 | Detects and blocks attacks on the public apps (see Security above)                               |
+| **Longhorn + VolSync**       | Block storage for app data, with nightly restic backups offsite                                            |
+| **kube-prometheus-stack + Gatus** | Metrics and alerts to Discord, plus the public status page                                            |
+
+---
+
+## 🗂 Directory Structure
+
+~~~text
+.github/
+├── workflows/        # HelmRelease test in k3d and the automerge queue
+└── scripts/          # CI helper scripts
+
+ci/                   # Dummy values and skip list for the HelmRelease test
+
+clusters/
+└── main/
+    ├── flux-entry/   # Flux entry point: SOPS decryption and cluster-settings substitution for every Kustomization
+    ├── kubernetes/   # Applications and Kubernetes workloads (apps, core, networking, observability, system, …)
+    ├── secrets/      # SOPS-encrypted cluster-wide settings
+    └── talos/        # Talos Linux machine and cluster configuration
+
+repositories/
+├── helm/             # Flux HelmRepository sources
+└── oci/              # Flux OCIRepository sources
+
+scripts/              # Helpers that run outside the cluster: Cloudflare Workers, Proxmox, and TrueNAS
+~~~
+
+---
+
+## 🔐 Secrets Management
+
+All secrets and credentials are stored in this repository **encrypted with SOPS** (age).
+
+- Secrets are committed to Git in encrypted form
+- Decryption happens inside the cluster via FluxCD
+- Decryption keys are managed externally and are never stored in Git
+- Each app keeps its own secrets next to it (`*.secret.yaml`); cluster-wide values live in `cluster-settings` and are substituted into the manifests by Flux
+- A pre-commit hook refuses commits that contain unencrypted secrets
+- This enables full GitOps workflows without exposing sensitive data
+
+---
+
+## ☁️ Cloud & External Dependencies
+
+| Service              | Usage                                                                         |
+| -------------------- | ----------------------------------------------------------------------------- |
+| **Cloudflare**       | DNS, the tunnel for public apps, WAF rules, and Workers for the badges and status page |
+| **GitHub**           | Source control, CI, and GitOps source                                         |
+| **Let's Encrypt**    | TLS certificates through cert-manager                                         |
+| **S3 storage**       | Offsite VolSync (restic) and CloudNativePG backups                            |
+| **CrowdSec Console** | Community blocklist and security overview                                     |
+| **Discord**          | Alerts from Alertmanager, Gatus, Proxmox, TrueNAS, and CrowdSec               |
+| **Healthchecks.io**  | Dead man's switch for Alertmanager                                            |
+| **UptimeRobot**      | Monitors the home internet connection                                         |
+
+---
+
+## 📊 Monitoring & Status
+
+* 📈 **Metrics** via kube-prometheus-stack, which also scrapes Proxmox, TrueNAS (including disk SMART data), and the UPS power draw
+* 🚨 **Alerting** to Discord from Alertmanager, Gatus, Proxmox, TrueNAS, and CrowdSec, with a Healthchecks.io dead man's switch in case Alertmanager itself goes quiet
+* 🌍 **Service visibility** through the Gatus [status page](https://status.mrfr34ky.workers.dev) and UptimeRobot
+* 🧮 **Cluster statistics** exposed via Kromgo and Shields.io, served through a Cloudflare Worker
+
+---
+
+## 🙏 Acknowledgements
+
+This cluster is heavily inspired by and built upon the excellent work of:
+
+* **TrueForge** – https://trueforge.org/
+* **Home Operations** – https://github.com/home-operations
+
+Their open-source contributions and documentation made this setup possible.
+
+---
+
+> ⚠️ **Note**  
+> This repository is public for transparency and learning purposes.  
+> Secrets and credentials **are stored in Git in encrypted form** using **SOPS**.  
+> Decryption keys are managed externally and are **not** committed to the repository.
+
+> 🧪 This cluster is used as a learning, testing, and long-running homelab environment.  
+> Configurations may evolve as new Kubernetes, Talos, or GitOps features are evaluated.
