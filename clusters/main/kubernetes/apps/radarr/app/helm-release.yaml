@@ -30,6 +30,21 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  # Back up the live volume (copyMethod Direct) instead of snapshot + full Longhorn clone: on a single node
+  # the clone copies all data on the same disk as etcd and stalled the API server. Only the backup side
+  # (ReplicationSource) is patched; the chart's copyMethod would also switch the restore side, so the
+  # ReplicationDestination stays on Snapshot and restores/rebuilds keep working.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              group: volsync.backube
+              kind: ReplicationSource
+              name: radarr-config-b2
+            patch: |
+              - op: replace
+                path: /spec/restic/copyMethod
+                value: Direct
   values:
     global:
       stopAll: false
@@ -56,7 +71,7 @@ spec:
             src:
               enabled: true
               trigger:
-                schedule: 12 3 * * *          
+                schedule: 30 4 * * *
       films:
         enabled: true
         path: /mnt/main/Media/Films

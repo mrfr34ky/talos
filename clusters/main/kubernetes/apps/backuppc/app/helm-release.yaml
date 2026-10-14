@@ -80,7 +80,7 @@ spec:
             src:
               enabled: true
               trigger:
-                schedule: 59 0 * * *
+                schedule: 22 4 * * *
       ssh:
         enabled: false
         mountPath: /home/backuppc

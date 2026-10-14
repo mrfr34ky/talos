@@ -56,7 +56,7 @@ spec:
             src:
               enabled: true
               trigger:
-                schedule: 10 4 * * *
+                schedule: 8 4 * * *
       media:
         enabled: true
         path: /mnt/main/Media/
