@@ -83,13 +83,9 @@ spec:
         mountPath: /data
         size: 1Gi
 
-    # The webhook stays in a Secret: the config references the GATUS_DISCORD_WEBHOOK env var, which
-    # Gatus expands at load time ($$ escapes Flux substitution), so the URL never lands in the ConfigMap.
-    secret:
-      discord:
-        enabled: true
-        data:
-          GATUS_DISCORD_WEBHOOK: ${GATUS_DISCORD_WEBHOOK}
+    # The webhook is in gatus-discord.secret.yaml (SOPS). The config references the GATUS_DISCORD_WEBHOOK
+    # env var, which Gatus expands at load time ($$ escapes Flux substitution), so the URL never lands in
+    # the ConfigMap. expandObjectName: false = use that Secret's literal name, not a chart-generated one.
     workload:
       main:
         podSpec:
@@ -97,7 +93,8 @@ spec:
             main:
               envFrom:
                 - secretRef:
-                    name: discord
+                    name: gatus-discord-webhook
+                    expandObjectName: false
 
     # The page is public: keep the cluster domain out of everything it shows.
     configmap:
