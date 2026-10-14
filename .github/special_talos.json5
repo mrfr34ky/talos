@@ -19,7 +19,7 @@
           "!/siderolabs/", "!/flux-operator/", "!/flux-instance/", "!/longhorn/", "!/cilium/",
           "!/k3s-io/", "!/k3d-io/", "!/metallb/", "!/volsync/", "!/tuppr/", "!/gatus/", "!/blocky/",
           "!/kromgo/", "!/metrics-server/", "!/node-feature-discovery/",
-          "!/traefik/", "!/cert-manager/", "!/cloudnative-pg/"
+          "!/traefik/", "!/cert-manager/", "!/cloudnative-pg/", "!/tailscale/", "!/cloudflared/"
         ],
         "automerge": true,
         "addLabels": ["automerge"]
@@ -38,7 +38,10 @@
       {
         "description": ["Auto-merge patch updates, except Talos, Flux and the CI cluster"],
         "matchUpdateTypes": ["patch"],
-        "matchPackageNames": ["!/siderolabs/", "!/flux-operator/", "!/flux-instance/", "!/k3s-io/", "!/k3d-io/"],
+        "matchPackageNames": [
+          "!/siderolabs/", "!/flux-operator/", "!/flux-instance/", "!/k3s-io/", "!/k3d-io/",
+          "!/tailscale/", "!/cloudflared/"
+        ],
         "automerge": true,
         "addLabels": ["automerge"]
       },
@@ -51,13 +54,19 @@
       {
         "description": ["Auto-merge digest and pin updates, except Talos/Kubernetes and the CI cluster"],
         "matchUpdateTypes": ["digest", "pin", "pinDigest"],
-        "matchPackageNames": ["!/siderolabs/", "!/k3s-io/", "!/k3d-io/"],
+        "matchPackageNames": ["!/siderolabs/", "!/k3s-io/", "!/k3d-io/", "!/tailscale/", "!/cloudflared/"],
         "automerge": true,
         "addLabels": ["automerge"]
       },
       // ---------------------------------------------------------------------------------------------
       // App-specific blocks (applied after the policy above, so they win)
       // ---------------------------------------------------------------------------------------------
+      {
+        // HelmRelease Test skips them (skipList in ci/.config.yaml), so a green check means untested
+        "description": ["tailscale and cloudflared can't be tested in CI: manual merge for any update"],
+        "matchPackageNames": ["/tailscale/", "/cloudflared/"],
+        "automerge": false
+      },
       {
         "description": ["Block automerge for Authentik"],
         "matchUpdateTypes": ["minor","major","patch"],
