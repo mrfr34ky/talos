@@ -1,0 +1,9 @@
+---
+# CI-only values for the crowdsec chart (merged after the HelmRelease values by deploy_helmrelease.sh).
+# No Console enrollment or Central API in CI: the enroll key is a secret and the runner shouldn't register.
+lapi:
+  env:
+    - name: DISABLE_ONLINE_API
+      value: "true"
+    - name: BOUNCER_KEY_traefik
+      value: dummy-bouncer-key

@@ -1,34 +1,67 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "packageRules": [
+      // ---------------------------------------------------------------------------------------------
+      // Auto-merge policy. PRs labelled "automerge" are merged
+      // only after the "HelmRelease Test" workflow passes (.github/workflows/automerge.yaml).
+      // The trueforge preset sets automerge: true for every minor/patch update, so critical components
+      // need an explicit automerge: false, not just an exclusion from the auto-merge rule.
+      // ---------------------------------------------------------------------------------------------
       {
-        "description": ["Block automerge for Kubelet and Talos version Patch"],
-        "matchUpdateTypes": ["patch"],
-        "automerge": false,
-        "matchPackageNames": ["ghcr.io/siderolabs/kubelet", "ghcr.io/siderolabs/talos"],
-        "labels": ["type/patch", "system-upgrade"],
-        "addLabels": null
-      },
-      {
-        "description": ["Block automerge for Kubelet and Talos version Minor"],
-        "matchUpdateTypes": ["minor"],
-        "automerge": false,
-        "matchPackageNames": ["ghcr.io/siderolabs/kubelet", "ghcr.io/siderolabs/talos"],
-        "labels": ["type/minor", "system-upgrade"],
-        "addLabels": null
-      },
-      {
-        "description": ["Block automerge for Kubelet and Talos version Major"],
+        "description": ["Never auto-merge major updates"],
         "matchUpdateTypes": ["major"],
-        "automerge": false,
-        "dependencyDashboardApproval": true,
-        "matchPackageNames": ["ghcr.io/siderolabs/kubelet", "ghcr.io/siderolabs/talos"],
-        "labels": ["type/major", "system-upgrade"],
-        "addLabels": null
+        "automerge": false
       },
+      {
+        "description": ["Auto-merge minor updates, except critical components"],
+        "matchUpdateTypes": ["minor"],
+        "matchPackageNames": [
+          "!/siderolabs/", "!/flux-operator/", "!/flux-instance/", "!/longhorn/", "!/cilium/",
+          "!/k3s-io/", "!/k3d-io/", "!/metallb/", "!/volsync/", "!/tuppr/", "!/gatus/", "!/blocky/",
+          "!/kromgo/", "!/metrics-server/", "!/node-feature-discovery/",
+          "!/traefik/", "!/cert-manager/", "!/cloudnative-pg/"
+        ],
+        "automerge": true,
+        "addLabels": ["automerge"]
+      },
+      {
+        "description": ["Critical components: minor updates need a manual merge"],
+        "matchUpdateTypes": ["minor"],
+        "matchPackageNames": [
+          "/siderolabs/", "/flux-operator/", "/flux-instance/", "/longhorn/", "/cilium/",
+          "/k3s-io/", "/k3d-io/", "/metallb/", "/volsync/", "/tuppr/", "/gatus/", "/blocky/",
+          "/kromgo/", "/metrics-server/", "/node-feature-discovery/",
+          "/traefik/", "/cert-manager/", "/cloudnative-pg/"
+        ],
+        "automerge": false
+      },
+      {
+        "description": ["Auto-merge patch updates, except Talos, Flux and the CI cluster"],
+        "matchUpdateTypes": ["patch"],
+        "matchPackageNames": ["!/siderolabs/", "!/flux-operator/", "!/flux-instance/", "!/k3s-io/", "!/k3d-io/"],
+        "automerge": true,
+        "addLabels": ["automerge"]
+      },
+      {
+        "description": ["Talos, Flux and the CI cluster: patch updates need a manual merge"],
+        "matchUpdateTypes": ["patch"],
+        "matchPackageNames": ["/siderolabs/", "/flux-operator/", "/flux-instance/", "/k3s-io/", "/k3d-io/"],
+        "automerge": false
+      },
+      {
+        "description": ["Auto-merge digest and pin updates, except Talos/Kubernetes and the CI cluster"],
+        "matchUpdateTypes": ["digest", "pin", "pinDigest"],
+        "matchPackageNames": ["!/siderolabs/", "!/k3s-io/", "!/k3d-io/"],
+        "automerge": true,
+        "addLabels": ["automerge"]
+      },
+      // ---------------------------------------------------------------------------------------------
+      // App-specific blocks (applied after the policy above, so they win)
+      // ---------------------------------------------------------------------------------------------
       {
         "description": ["Block automerge for Authentik"],
         "matchUpdateTypes": ["minor","major","patch"],
+        "automerge": false,
         "dependencyDashboardApproval": true,
         "matchPackageNames": ["oci.trueforge.org/truecharts/authentik"],
         "labels": ["type/minor","type/major","type/patch"],
@@ -37,10 +70,30 @@
       {
         "description": ["Block automerge for Nextcloud"],
         "matchUpdateTypes": ["minor","major","patch"],
+        "automerge": false,
         "dependencyDashboardApproval": true,
         "matchPackageNames": ["oci.trueforge.org/truecharts/nextcloud"],
         "labels": ["type/minor","type/major","type/patch"],
         "addLabels": null
+      },
+      // ---------------------------------------------------------------------------------------------
+      // Talos and Kubernetes: NEVER auto-merge, whatever the update type. Must stay last so no rule
+      // above can override it. Merging bumps the tuppr plans (system-upgrade/tuppr-plans) and starts a
+      // real cluster upgrade. Renovate tracks them as siderolabs/talos (github-releases) and
+      // ghcr.io/siderolabs/kubelet (= the Kubernetes version); k3s-io is the CI cluster's Kubernetes.
+      // The "system-upgrade" label also makes .github/workflows/automerge.yaml refuse the PR.
+      // ---------------------------------------------------------------------------------------------
+      {
+        "description": ["Talos and Kubernetes: never auto-merge any update (manual merge only)"],
+        "matchPackageNames": ["/siderolabs/", "/k3s-io/"],
+        "automerge": false,
+        "addLabels": ["system-upgrade"]
+      },
+      {
+        "description": ["Talos and Kubernetes major updates also need approval on the Renovate dashboard"],
+        "matchPackageNames": ["/siderolabs/"],
+        "matchUpdateTypes": ["major"],
+        "dependencyDashboardApproval": true
       }
     ]
   }

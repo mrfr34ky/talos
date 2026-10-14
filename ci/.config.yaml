@@ -1,0 +1,70 @@
+---
+# CI configuration for .github/workflows/helmrelease-test.yaml.
+# canaryHelmRelease: tested whenever the CI tooling itself changes.
+# dummyEnv: placeholder values for the ${VARS} that Flux normally substitutes from cluster-settings.
+#   Formats matter (URLs, IPs, CIDRs); secrets can be any string. Unlisted vars stay literal ${VAR}.
+# skipList: HelmRelease directories that can't run in a throwaway k3d cluster.
+
+canaryHelmRelease: clusters/main/kubernetes/observability/kromgo/app/helm-release.yaml
+
+dummyEnv:
+  DOMAIN_0: dummy.local
+  DOMAIN_0_EMAIL: ci@dummy.local
+  DOMAIN_0_CLOUDFLARE_TOKEN: dummy-cloudflare-token
+  GMAIL_USER: ci@dummy.local
+  PODNET: 10.42.0.0/16
+  METALLB_RANGE: 192.168.20.211-192.168.20.219
+  BLOCKY_IP: 192.168.20.212
+  NGINX_INTERNAL_IP: 192.168.20.214
+  NGINX_EXTERNAL_IP: 192.168.20.215
+  PLEX_IP: 192.168.20.216
+  PIHOLE_IP: 192.168.20.217
+  HEADLAMP_IP: 192.168.20.218
+  S3URL: https://s3.dummy.local
+  S3ID: dummy-s3-id
+  S3KEY: dummy-s3-key
+  S3PREFIX: ci
+  AUTHENTIK_PWD: dummy-password
+  AUTHENTIK_CNPG_PWD: dummy-password
+  AUTHENTIK_REDIS_PWD: dummy-password
+  AUTHENTIK_SMTP_PWD: dummy-password
+  COLLABORA_USER: ci
+  COLLABORA_PWD: dummy-password
+  CROWDSEC_BOUNCER_KEY: dummy-bouncer-key
+  EMAIL2PDF_SMTP_PWD: dummy-password
+  GUACAMOLE_CNPG_PWD: dummy-password
+  HA_CNPG_PWD: dummy-password
+  NEXTCLOUD_USER: ci
+  NEXTCLOUD_PWD: dummy-password
+  NEXTCLOUD_CNPG_PWD: dummy-password
+  NEXTCLOUD_REDIS_PWD: dummy-password
+  OPENVPN_USER: ci
+  OPENVPN_PASSWORD: dummy-password
+  PAPERLESS_ADM_PWD: dummy-password
+  PAPERLESS_CNPG_PWD: dummy-password
+  PGADMIN_PWD: dummy-password
+  PLEX_TOKEN: dummy-plex-token
+  PVE_USER: ci@pve
+  PVE_TOKEN_NAME: ci
+  PVE_TOKEN_VALUE: dummy-token
+  TDARR_API: dummy-api-key
+  TRACEARR_JWT_SECRET: dummy-jwt-secret-0123456789abcdef
+  TRACEARR_COOKIE_SECRET: dummy-cookie-secret-0123456789abcdef
+  VAULTWARDEN_CNPG_PWD: dummy-password
+  VW_TOKEN: dummy-admin-token
+  VW_SMTP_PWD: dummy-password
+  # CSKEY (CrowdSec Console enroll key) is deliberately absent: see ci/crowdsec.yaml
+  # CLOUDFLARED_TUNNEL_TOKEN / TAILSCALE_AUTH_KEY: those apps are in skipList (need real credentials)
+
+skipList:
+  # Cluster plumbing a k3d cluster can't run, or that would fight with it
+  - clusters/main/kubernetes/kube-system/cilium/app
+  - clusters/main/kubernetes/system/longhorn/app
+  - clusters/main/kubernetes/system/generic-device-plugin/app
+  - clusters/main/kubernetes/system-upgrade/tuppr/app
+  - clusters/main/kubernetes/flux-system/flux-instance/app
+  - clusters/main/kubernetes/flux-system/flux-operator/app
+  - clusters/main/kubernetes/apps/k8tz/app
+  # Need real external credentials to start
+  - clusters/main/kubernetes/apps/cloudflared/app
+  - clusters/main/kubernetes/apps/tailscale/app
