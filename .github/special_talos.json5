@@ -2,18 +2,25 @@
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "packageRules": [
       // ---------------------------------------------------------------------------------------------
-      // Auto-merge policy. PRs labelled "automerge" are merged
-      // only after the "HelmRelease Test" workflow passes (.github/workflows/automerge.yaml).
-      // The trueforge preset sets automerge: true for every minor/patch update, so critical components
-      // need an explicit automerge: false, not just an exclusion from the auto-merge rule.
+      // Auto-merge policy. Renovate never merges by itself, it only labels PRs "automerge".
+      // .github/workflows/automerge.yaml merges those after the "HelmRelease Test" passed, one at a
+      // time and at least 10 minutes apart. Later rules win over earlier ones.
       // ---------------------------------------------------------------------------------------------
+      {
+        "description": ["Renovate never merges by itself (overrides the trueforge preset); the Automerge workflow does"],
+        "matchUpdateTypes": [
+          "major", "minor", "patch", "digest", "pin", "pinDigest",
+          "lockFileMaintenance", "rollback", "bump", "replacement"
+        ],
+        "automerge": false
+      },
       {
         "description": ["Never auto-merge major updates"],
         "matchUpdateTypes": ["major"],
         "automerge": false
       },
       {
-        "description": ["Auto-merge minor updates, except critical components"],
+        "description": ["Label minor updates for auto-merge, except critical components"],
         "matchUpdateTypes": ["minor"],
         "matchPackageNames": [
           "!/siderolabs/", "!/flux-operator/", "!/flux-instance/", "!/longhorn/", "!/cilium/",
@@ -21,7 +28,6 @@
           "!/kromgo/", "!/metrics-server/", "!/node-feature-discovery/",
           "!/traefik/", "!/cert-manager/", "!/cloudnative-pg/", "!/tailscale/", "!/cloudflared/"
         ],
-        "automerge": true,
         "addLabels": ["automerge"]
       },
       {
@@ -36,13 +42,12 @@
         "automerge": false
       },
       {
-        "description": ["Auto-merge patch updates, except Talos, Flux and the CI cluster"],
+        "description": ["Label patch updates for auto-merge, except Talos, Flux, the CI cluster, tailscale and cloudflared"],
         "matchUpdateTypes": ["patch"],
         "matchPackageNames": [
           "!/siderolabs/", "!/flux-operator/", "!/flux-instance/", "!/k3s-io/", "!/k3d-io/",
           "!/tailscale/", "!/cloudflared/"
         ],
-        "automerge": true,
         "addLabels": ["automerge"]
       },
       {
@@ -52,10 +57,9 @@
         "automerge": false
       },
       {
-        "description": ["Auto-merge digest and pin updates, except Talos/Kubernetes and the CI cluster"],
+        "description": ["Label digest and pin updates for auto-merge, except Talos/Kubernetes, the CI cluster, tailscale and cloudflared"],
         "matchUpdateTypes": ["digest", "pin", "pinDigest"],
         "matchPackageNames": ["!/siderolabs/", "!/k3s-io/", "!/k3d-io/", "!/tailscale/", "!/cloudflared/"],
-        "automerge": true,
         "addLabels": ["automerge"]
       },
       // ---------------------------------------------------------------------------------------------

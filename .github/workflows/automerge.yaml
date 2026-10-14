@@ -1,84 +1,84 @@
 ---
-# Squash-merges Renovate PRs labelled "automerge" (see .github/special_talos.json5) as soon as
-# "HelmRelease Test" has passed for them. Every finished test run handles only its own PR, so several
-# PRs can merge at once instead of the ~2 per run Renovate manages on its own.
-# Only the exact commit that was tested is merged (--match-head-commit): if the PR got a new commit in
-# the meantime, GitHub refuses the merge and the new commit waits for its own test run.
+# The only thing that merges Renovate PRs (Renovate itself has automerge: false, see
+# .github/special_talos.json5; it only labels PRs "automerge").
+# Merges one PR at a time, oldest first, and only when main has had no change for MERGE_SPACING_MINUTES,
+# so app upgrades don't all restart at once on the single node.
+# A PR qualifies when "HelmRelease Test" (test-summary) passed on its current commit; only that exact
+# commit is merged (--match-head-commit). PRs labelled system-upgrade (Talos/Kubernetes) never.
 name: Automerge
 
 on:
+  # Right after a test finishes, if main has been quiet long enough
   workflow_run:
     workflows: ["HelmRelease Test"]
     types:
       - completed
+  # Picks up the next waiting PR once the spacing has passed
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
 
+# One run at a time. A newer pending run replaces an older one, which is fine: every run rescans all PRs
 concurrency:
-  group: automerge-${{ github.event.workflow_run.head_branch }}
-  cancel-in-progress: true
+  group: automerge
+  cancel-in-progress: false
 
 jobs:
   automerge:
-    # Only after a successful test run of a pull request; a failed test leaves the PR for review
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
+      checks: read
       contents: write
       pull-requests: write
     steps:
-      - name: Merge the tested commit
+      - name: Merge the oldest tested PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          # Empty for PRs from forks, which are never auto-merged
-          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
-          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          MERGE_SPACING_MINUTES: 10
         run: |
           set -euo pipefail
 
-          if [ -z "$PR_NUMBER" ]; then
-            echo "ℹ️ No pull request of this repository for the tested commit, nothing to merge"
+          # Any change to main counts (also manual pushes), as Flux deploys every one of them
+          last_change=$(gh api "repos/$GH_REPO/commits/main" --jq '.commit.committer.date')
+          quiet_for=$(( ($(date -u +%s) - $(date -u -d "$last_change" +%s)) / 60 ))
+          if [ "$quiet_for" -lt "$MERGE_SPACING_MINUTES" ]; then
+            echo "⏳ Last change to main was $quiet_for min ago, next merge after $MERGE_SPACING_MINUTES min"
             exit 0
           fi
 
-          for attempt in 1 2 3 4 5; do
-            pr=$(gh pr view "$PR_NUMBER" --json state,isDraft,headRefOid,labels)
-            state=$(jq -r '.state' <<<"$pr")
-            head=$(jq -r '.headRefOid' <<<"$pr")
-            labels=$(jq -r '.labels[].name' <<<"$pr")
+          # Open, non-draft PRs from this repository labelled automerge (not system-upgrade), oldest first
+          mapfile -t candidates < <(
+            gh pr list --state open --label automerge --limit 100 \
+              --json number,headRefOid,isDraft,isCrossRepository,labels,createdAt \
+              --jq 'map(select((.isDraft | not) and (.isCrossRepository | not)
+                               and ([.labels[].name] | index("system-upgrade") | not)))
+                    | sort_by(.createdAt) | .[] | "\(.number) \(.headRefOid)"'
+          )
 
-            if [ "$state" != "OPEN" ]; then
-              echo "ℹ️ PR #$PR_NUMBER is $state, nothing to merge"
-              exit 0
-            fi
-            if [ "$(jq -r '.isDraft' <<<"$pr")" = "true" ]; then
-              echo "ℹ️ PR #$PR_NUMBER is a draft, leaving it alone"
-              exit 0
-            fi
-            if ! grep -qx 'automerge' <<<"$labels"; then
-              echo "ℹ️ PR #$PR_NUMBER is not labelled automerge, it needs a manual merge"
-              exit 0
-            fi
-            # Talos/Kubernetes upgrades are never auto-merged, even if mislabelled
-            if grep -qx 'system-upgrade' <<<"$labels"; then
-              echo "🛑 PR #$PR_NUMBER is labelled system-upgrade, it needs a manual merge"
-              exit 0
-            fi
-            if [ "$head" != "$TESTED_SHA" ]; then
-              echo "ℹ️ PR #$PR_NUMBER moved on from the tested commit $TESTED_SHA to $head, its own test run decides"
-              exit 0
-            fi
+          if [ ${#candidates[@]} -eq 0 ]; then
+            echo "ℹ️ No PRs waiting to be auto-merged"
+            exit 0
+          fi
 
-            if gh pr merge "$PR_NUMBER" --squash --match-head-commit "$TESTED_SHA"; then
-              echo "✅ Merged PR #$PR_NUMBER at $TESTED_SHA"
-              exit 0
+          for candidate in "${candidates[@]}"; do
+            read -r number sha <<<"$candidate"
+
+            # The HelmRelease Test summary must have passed on exactly this commit
+            result=$(gh api "repos/$GH_REPO/commits/$sha/check-runs?check_name=test-summary" \
+              --jq '.check_runs | sort_by(.started_at) | last
+                    | if . == null then "not run" elif .status != "completed" then "running"
+                      else .conclusion end')
+            if [ "$result" != "success" ]; then
+              echo "⏭️ PR #$number: HelmRelease Test on $sha is '$result', not merging"
+              continue
             fi
 
-            # Typically "Base branch was modified" when another PR merged at the same moment
-            echo "⚠️ Merge attempt $attempt failed, retrying in 30s"
-            sleep 30
+            if gh pr merge "$number" --squash --match-head-commit "$sha"; then
+              echo "✅ Merged PR #$number at $sha, the next one waits $MERGE_SPACING_MINUTES min"
+              exit 0
+            fi
+            echo "⚠️ PR #$number could not be merged (conflict, or it moved on), trying the next one"
           done
 
-          echo "❌ Could not merge PR #$PR_NUMBER, Renovate retries on its next run"
-          exit 1
+          echo "ℹ️ No PR can be merged right now"
