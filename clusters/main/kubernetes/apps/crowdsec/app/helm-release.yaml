@@ -80,6 +80,55 @@ spec:
               reason: "Nextcloud Memories previews"
               expression:
                 - evt.Meta.traefik_router_name startsWith 'nextcloud-' && evt.Meta.http_verb == 'GET' && evt.Meta.http_status in ['200', '304', '404'] && evt.Meta.http_path matches '^(/index\\.php)?/apps/memories/api/'
+      # Discord notifications for login attacks only. Bans from scenarios ending in "bf" or "user_enum"
+      # (Vaultwarden, Nextcloud, Authentik, Seerr, Guacamole, generic HTTP/SSH brute-force) go through the
+      # first profile, which notifies. Everything else, mostly scanner noise (~25 bans/day), still gets
+      # banned silently by the stock profiles below. Ban settings are the CrowdSec defaults (4h).
+      profiles.yaml: |
+        name: login_attack_ip_remediation
+        filters:
+         - Alert.Remediation == true && Alert.GetScope() == "Ip" && Alert.GetScenario() matches "(?i)(bf|user[-_]?enum)$"
+        decisions:
+         - type: ban
+           duration: 4h
+        notifications:
+         - discord
+        on_success: break
+        ---
+        name: default_ip_remediation
+        filters:
+         - Alert.Remediation == true && Alert.GetScope() == "Ip"
+        decisions:
+         - type: ban
+           duration: 4h
+        on_success: break
+        ---
+        name: default_range_remediation
+        filters:
+         - Alert.Remediation == true && Alert.GetScope() == "Range"
+        decisions:
+         - type: ban
+           duration: 4h
+        on_success: break
+      notifications:
+        # Sends to Discord. The URL is expanded by CrowdSec from the LAPI env (Secret crowdsec-discord);
+        # $$ stops Flux from substituting it, so it never lands in the ConfigMap.
+        # Alerts within 30s are sent together, up to 10 per message.
+        # Fields are pointers: print them with {{ }}, never via printf (that would print addresses).
+        discord.yaml: |
+          type: http
+          name: discord
+          log_level: info
+          group_wait: 30s
+          group_threshold: 10
+          max_retry: 5
+          timeout: 10s
+          format: |
+            {"username":"CrowdSec","embeds":[{"title":"Login attack blocked","color":15158332,"description":"{{ range $a := . }}{{ range $a.Decisions }}{{ if $a.Source.Cn }}:flag_{{ lower $a.Source.Cn }}: {{ end }}**{{ .Value }}** banned for {{ .Duration }} · `{{ $a.Scenario }}` ({{ $a.EventsCount }} events)\n{{ end }}{{ end }}"}]}
+          url: $${CROWDSEC_DISCORD_WEBHOOK}
+          method: POST
+          headers:
+            Content-Type: application/json
     agent:
       # poll_without_inotify: the files in /var/log/containers are symlinks. With inotify the
       # agent can't follow kubelet's log rotation (every 10 MiB) and silently stops reading
@@ -139,7 +188,13 @@ spec:
         # doesn't need the manual `cscli bouncers add`. Must match the key in the
         # traefik-external crowdsec middleware.
         - name: BOUNCER_KEY_traefik
-          value: "${CROWDSEC_BOUNCER_KEY}"  
+          value: "${CROWDSEC_BOUNCER_KEY}"
+        # Read by the Discord notification config (config.notifications.discord.yaml)
+        - name: CROWDSEC_DISCORD_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: crowdsec-discord
+              key: CROWDSEC_DISCORD_WEBHOOK
       resources:
         requests:
           cpu: 25m    
