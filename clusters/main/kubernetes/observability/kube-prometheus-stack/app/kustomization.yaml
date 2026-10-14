@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - helm-release.yaml
-  - alertmanager-secret.yaml
+  - alertmanager.secret.yaml
   - alertmanagerconfig.yaml
   - scrapeconfig.yaml
   - prometheusrule-truenas.yaml
