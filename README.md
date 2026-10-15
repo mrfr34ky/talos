@@ -41,7 +41,7 @@ Key goals of this setup:
 
 * 🔁 **Reproducibility** – rebuild the entire cluster from Git
 * 🔒 **Immutability & Security** – minimal OS, no SSH, API-driven management, CrowdSec in front of everything public
-* 📈 **Observability** – metrics, alerts to Discord, and a public status page
+* 📈 **Observability** – metrics, logs, dashboards, alerts to Discord, and a public status page
 * 🤖 **Automation-first** – dependency updates are tested in CI and merged without manual intervention
 
 ---
@@ -115,7 +115,9 @@ Internet → Cloudflare (WAF) → Cloudflare Tunnel → traefik-external + Crowd
 | **Clustertool**              | Bootstrap tool from TrueForge used to build the basic cluster structure and setup                          |
 | **CrowdSec**                 | Detects and blocks attacks on the public apps                                                              |
 | **Longhorn + VolSync**       | Block storage for app data, with nightly restic backups offsite                                            |
-| **kube-prometheus-stack + Gatus** | Metrics and alerts, plus the public status page                                            |
+| **kube-prometheus-stack + Gatus** | Metrics and alerts, plus the public status page                                                       |
+| **Grafana**                  | Dashboards for the cluster                                                                                 |
+| **Loki + Alloy**             | Alloy collects the logs of every pod; Loki stores them                                                     |
 
 ---
 
@@ -175,6 +177,8 @@ All secrets and credentials are stored in this repository **encrypted with SOPS*
 ## 📊 Monitoring & Status
 
 * 📈 **Metrics** via kube-prometheus-stack, which also scrapes Proxmox, TrueNAS (including disk SMART data), and the UPS power draw
+* 📊 **Dashboards** in Grafana for the cluster
+* 📜 **Logs** of every pod collected by Alloy and kept in Loki for 30 days
 * 🚨 **Alerting** to Discord from Alertmanager, Gatus, Proxmox, TrueNAS, and CrowdSec, with a Healthchecks.io dead man's switch in case Alertmanager itself goes quiet
 * 🌍 **Service visibility** through the Gatus [status page](https://status.b-a-l-a-z-s.workers.dev) and UptimeRobot
 * 🧮 **Cluster statistics** exposed via Kromgo and Shields.io, served through a Cloudflare Worker
