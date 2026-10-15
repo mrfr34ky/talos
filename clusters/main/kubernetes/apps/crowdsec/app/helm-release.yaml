@@ -30,10 +30,58 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  # The chart registers the agent under its pod name on every start. After a node reboot the same
+  # pod restarts in place, its old registration is still in the LAPI, and registering fails with
+  # "user already exist" until the pod is deleted. Fall back to a unique name instead; the LAPI's
+  # agents_autodelete (config.yaml.local below) removes the stale entries.
+  # Bare $VARS are shell variables; Flux only substitutes ${VARS}.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: DaemonSet
+              name: crowdsec-agent
+            patch: |
+              apiVersion: apps/v1
+              kind: DaemonSet
+              metadata:
+                name: crowdsec-agent
+              spec:
+                template:
+                  spec:
+                    initContainers:
+                      - name: wait-for-lapi-and-register
+                        command:
+                          - sh
+                          - -c
+                          - >-
+                            until nc "$LAPI_HOST" "$LAPI_PORT" -z; do echo waiting for lapi to start; sleep 5; done;
+                            ln -s /staging/etc/crowdsec /etc/crowdsec &&
+                            { cscli lapi register --machine "$USERNAME" -u "$LAPI_URL" --token "$REGISTRATION_TOKEN" ||
+                            cscli lapi register --machine "$USERNAME-$(date +%s)" -u "$LAPI_URL" --token "$REGISTRATION_TOKEN"; } &&
+                            cp /etc/crowdsec/local_api_credentials.yaml /tmp_config/local_api_credentials.yaml
   values:
     # Talos runs containerd
     container_runtime: containerd
     config:
+      # Replaces the chart's default config.yaml.local, so the api block repeats that default
+      # (agent auto-registration). $${...} stops Flux substituting it; CrowdSec fills in the token.
+      config.yaml.local: |
+        api:
+          server:
+            auto_registration:
+              enabled: true
+              token: "$${REGISTRATION_TOKEN}"
+              allowed_ranges:
+                - "127.0.0.1/32"
+                - "192.168.0.0/16"
+                - "10.0.0.0/8"
+                - "172.16.0.0/12"
+        # Delete agent registrations that haven't been seen for 7 days (left by restarted pods)
+        db_config:
+          flush:
+            agents_autodelete:
+              login_password: 7d
       parsers:
         s01-parse:
           # Seerr renamed its failed sign-in messages and adds a userId field, so the
