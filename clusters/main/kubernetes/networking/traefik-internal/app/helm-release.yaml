@@ -136,6 +136,14 @@ spec:
               - X-authentik-meta-provider
               - X-authentik-meta-app
               - X-authentik-meta-version        
+    # Prometheus metrics (entrypoint "metrics", port 9100) on their own in-cluster Service,
+    # scraped through a ServiceMonitor for the Traefik dashboard in Grafana
+    metrics:
+      prometheus:
+        service:
+          enabled: true
+        serviceMonitor:
+          enabled: true
     service:
       annotations:
         metallb.io/ip-allocated-from-pool: main

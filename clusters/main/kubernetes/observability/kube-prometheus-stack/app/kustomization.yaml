@@ -9,3 +9,4 @@ resources:
   - scrapeconfig.yaml
   - prometheusrule-truenas.yaml
   - prometheusrule-proxmox.yaml
+  - podmonitor-flux.yaml

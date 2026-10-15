@@ -1,0 +1,127 @@
+---
+# Grafana "Logs" dashboard, picked up by Grafana's sidecar (label grafana_dashboard: "1").
+# Uses the labels Alloy attaches: namespace, pod, container, app.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logs-grafana-dashboard
+  namespace: loki
+  labels:
+    grafana_dashboard: "1"
+data:
+  logs.json: |
+    {
+      "title": "Logs",
+      "uid": "logs-overview",
+      "tags": ["loki", "logs"],
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": true,
+      "timezone": "browser",
+      "time": { "from": "now-6h", "to": "now" },
+      "refresh": "1m",
+      "templating": {
+        "list": [
+          {
+            "name": "namespace",
+            "label": "Namespace",
+            "type": "query",
+            "datasource": { "type": "loki", "uid": "loki" },
+            "query": { "label": "namespace", "refId": "LokiVariableQueryEditor-VariableQuery", "stream": "", "type": 1 },
+            "definition": "label_values(namespace)",
+            "includeAll": true,
+            "allValue": ".+",
+            "multi": true,
+            "current": { "text": "All", "value": "$__all" },
+            "refresh": 2,
+            "sort": 1
+          },
+          {
+            "name": "pod",
+            "label": "Pod",
+            "type": "query",
+            "datasource": { "type": "loki", "uid": "loki" },
+            "query": { "label": "pod", "refId": "LokiVariableQueryEditor-VariableQuery", "stream": "{namespace=~\"$namespace\"}", "type": 1 },
+            "definition": "label_values({namespace=~\"$namespace\"}, pod)",
+            "includeAll": true,
+            "allValue": ".+",
+            "multi": true,
+            "current": { "text": "All", "value": "$__all" },
+            "refresh": 2,
+            "sort": 1
+          },
+          {
+            "name": "search",
+            "label": "Search (regex, case-insensitive)",
+            "type": "textbox",
+            "query": "",
+            "current": { "text": "", "value": "" }
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "type": "timeseries",
+          "title": "Log lines per namespace",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "datasource": { "type": "loki", "uid": "loki" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "sum by (namespace) (count_over_time({namespace=~\"$namespace\", pod=~\"$pod\"} |~ \"(?i)$search\" [$__auto]))",
+              "legendFormat": "{{namespace}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } },
+            "overrides": []
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "Error lines per namespace (error, fatal, panic, exception, fail)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "datasource": { "type": "loki", "uid": "loki" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "sum by (namespace) (count_over_time({namespace=~\"$namespace\", pod=~\"$pod\"} |~ \"(?i)(error|fatal|panic|exception|fail)\" |~ \"(?i)$search\" [$__auto]))",
+              "legendFormat": "{{namespace}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } },
+            "overrides": []
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+        },
+        {
+          "id": 3,
+          "type": "logs",
+          "title": "Logs",
+          "gridPos": { "h": 20, "w": 24, "x": 0, "y": 8 },
+          "datasource": { "type": "loki", "uid": "loki" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "{namespace=~\"$namespace\", pod=~\"$pod\"} |~ \"(?i)$search\""
+            }
+          ],
+          "options": {
+            "showTime": true,
+            "showLabels": false,
+            "wrapLogMessage": true,
+            "prettifyLogMessage": false,
+            "enableLogDetails": true,
+            "dedupStrategy": "none",
+            "sortOrder": "Descending"
+          }
+        }
+      ]
+    }
