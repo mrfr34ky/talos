@@ -20,6 +20,25 @@ spec:
       replacement: truenas-node-exporter
 ---
 # yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/scrapeconfig_v1alpha1.json
+# node-exporter on the Proxmox host (Debian package prometheus-node-exporter), mainly for
+# the hardware sensors on the temperature dashboard. Not job "node-exporter" either: the
+# host runs ZFS too, so its ARC would trip the same memory alert as TrueNAS.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: proxmox-node-exporter
+  namespace: kube-prometheus-stack
+spec:
+  staticConfigs:
+    - targets:
+        - 192.168.1.48:9100 # same host as ext-prox
+  metricsPath: /metrics
+  relabelings:
+    - action: replace
+      targetLabel: job
+      replacement: proxmox-node-exporter
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/scrapeconfig_v1alpha1.json
 # smartctl_exporter running as a privileged TrueNAS custom app. It skips disks in standby
 # (--smartctl.powermode-check=standby default), so scrapes don't spin disks up.
 apiVersion: monitoring.coreos.com/v1alpha1

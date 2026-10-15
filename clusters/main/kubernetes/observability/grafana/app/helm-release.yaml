@@ -109,7 +109,8 @@ spec:
     # Placeholders are swapped for our data source uid; $${...} stops Flux substituting them.
     dashboards:
       grafana:
-        # TrueNAS host (pick job truenas-node-exporter) and the Talos node (job node-exporter)
+        # Proxmox host (pick job proxmox-node-exporter), TrueNAS (job truenas-node-exporter)
+        # and the Talos node (job node-exporter)
         node-exporter-full:
           enabled: true
           failOnError: false
