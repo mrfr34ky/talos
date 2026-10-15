@@ -179,6 +179,18 @@ spec:
             # renovate: depName="authentik"
             id: 14837
             revision: 2
+        # pihole-exporter (apps/pihole/app/exporter.yaml), dashboard by the exporter's author
+        pihole:
+          enabled: true
+          failOnError: false
+          b64content: false
+          datasource:
+            - name: "$${DS_PROMETHEUS}"
+              value: prometheus
+          marketplace:
+            # renovate: depName="Pi-hole Exporter"
+            id: 10176
+            revision: 3
         # Flux Operator's own dashboard, pinned to the installed operator version (repositories/oci)
         flux-performance:
           enabled: true

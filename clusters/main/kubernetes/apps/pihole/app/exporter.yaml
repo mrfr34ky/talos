@@ -1,0 +1,90 @@
+---
+# Prometheus exporter for Pi-hole (v6 API), for the Pi-hole dashboard in Grafana.
+# Runs next to Pi-hole rather than inside its pod, so Pi-hole (DNS) never restarts for it.
+# Reads the API through the in-cluster service; Pi-hole's API has no password here
+# (FTLCONF_webserver_api_password: ''; the web UI sits behind Authentik), so none is set.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pihole-exporter
+  namespace: pihole
+  labels:
+    app.kubernetes.io/name: pihole-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pihole-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pihole-exporter
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: pihole-exporter
+          image: docker.io/ekofr/pihole-exporter:v1.2.0
+          env:
+            - name: PIHOLE_PROTOCOL
+              value: http
+            - name: PIHOLE_HOSTNAME
+              value: pihole.pihole.svc.cluster.local
+            - name: PIHOLE_PORT
+              value: "9089"
+            - name: PORT
+              value: "9617"
+          ports:
+            - name: metrics
+              containerPort: 9617
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+            periodSeconds: 30
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            periodSeconds: 60
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-exporter
+  namespace: pihole
+  labels:
+    app.kubernetes.io/name: pihole-exporter
+spec:
+  selector:
+    app.kubernetes.io/name: pihole-exporter
+  ports:
+    - name: metrics
+      port: 9617
+      targetPort: metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pihole-exporter
+  namespace: pihole
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pihole-exporter
+  endpoints:
+    - port: metrics
+      interval: 60s
