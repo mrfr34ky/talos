@@ -1,0 +1,17 @@
+# CI override for observability/loki: the throwaway k3d cluster can't reach Garage on TrueNAS,
+# so store everything on the local volume instead.
+loki:
+  storage:
+    type: filesystem
+  schemaConfig:
+    configs:
+      - from: "2026-10-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: loki_index_
+          period: 24h
+  compactor:
+    retention_enabled: true
+    delete_request_store: filesystem

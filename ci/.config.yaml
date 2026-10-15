@@ -33,6 +33,9 @@ dummyEnv:
   COLLABORA_PWD: dummy-password
   CROWDSEC_BOUNCER_KEY: dummy-bouncer-key
   EMAIL2PDF_SMTP_PWD: dummy-password
+  GRAFANA_ADMIN_PWD: dummy-password
+  LOKI_S3_ACCESS_KEY_ID: GKdummy
+  LOKI_S3_SECRET_ACCESS_KEY: dummy-secret
   GUACAMOLE_CNPG_PWD: dummy-password
   HA_CNPG_PWD: dummy-password
   NEXTCLOUD_USER: ci
