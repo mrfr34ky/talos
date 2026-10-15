@@ -1,0 +1,108 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: grafana
+  namespace: grafana
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: grafana
+      version: 24.0.1
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  # Dashboards and data sources come from ConfigMaps (labels grafana_dashboard / grafana_datasource)
+  # that the chart's sidecar collects from every namespace: kube-prometheus-stack publishes its
+  # dashboards and the Prometheus data source, observability/loki the Loki data source.
+  values:
+    global:
+      stopAll: false
+    TZ: Europe/Brussels
+    resources:
+      requests:
+        cpu: 10m
+    credentials:
+      s3:
+        type: s3
+        url: "${S3URL}"
+        bucket: "${S3PREFIX}-grafana"
+        accessKey: "${S3ID}"
+        secretKey: "${S3KEY}"
+        encrKey: "${S3KEY}"
+    workload:
+      main:
+        podSpec:
+          containers:
+            main:
+              env:
+                GF_SERVER_ROOT_URL: "https://grafana.${DOMAIN_0}"
+                # The chart's grafana.ini sets domain to the whole first ingress host entry
+                # ("map[host:... paths:...]"); environment variables override grafana.ini
+                GF_SERVER_DOMAIN: "grafana.${DOMAIN_0}"
+                # The chart's default is a fixed "testpassword". Keep this a plain value: the chart
+                # copies it into its sidecars, which log in as admin to reload dashboards/data sources.
+                GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PWD}"
+                # Built-in SQLite (grafana.db on the data volume) instead of CNPG. The chart always
+                # sets the Postgres settings below (host/password from cnpg secrets), even with cnpg
+                # disabled. Blank them: SQLite ignores them. Not null: the Kubernetes API drops null
+                # values from HelmRelease values, so the chart's defaults would come back.
+                GF_DATABASE_TYPE: sqlite3
+                GF_DATABASE_NAME: ""
+                GF_DATABASE_USER: ""
+                GF_DATABASE_SSL_MODE: ""
+                GF_DATABASE_HOST: ""
+                GF_DATABASE_PASSWORD: ""
+    cnpg:
+      main:
+        enabled: false
+    persistence:
+      data:
+        # Holds grafana.db; dashboards and data sources are provisioned from ConfigMaps
+        size: 5Gi
+        volsync:
+          - name: b2
+            type: restic
+            credentials: s3
+            dest:
+              enabled: true
+            src:
+              enabled: true
+              trigger:
+                # Free slot in the nightly backup chain (UTC, 7 minutes apart)
+                schedule: 59 0 * * *
+    ingress:
+      main:
+        enabled: true
+        ingressClassName: internal
+        integrations:
+          traefik:
+            enabled: true
+          certManager:
+            enabled: true
+            certificateIssuer: domain-0-le-prod
+          nginx:
+            enabled: false
+        hosts:
+          - host: grafana.${DOMAIN_0}
+            paths:
+              - path: /
+                pathType: Prefix

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: alloy
+  labels:
+    # Reads the pods' log files from the node (hostPath), like the CrowdSec agent
+    pod-security.kubernetes.io/enforce: privileged

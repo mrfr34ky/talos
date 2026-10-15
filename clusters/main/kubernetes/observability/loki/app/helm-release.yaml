@@ -1,0 +1,102 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: loki
+  namespace: loki
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: loki
+      version: 7.3.0
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    # One Loki process does everything (enough for a single-node homelab)
+    deploymentMode: SingleBinary
+    loki:
+      auth_enabled: false
+      commonConfig:
+        replication_factor: 1
+      schemaConfig:
+        configs:
+          - from: "2026-10-01"
+            store: tsdb
+            object_store: s3
+            schema: v13
+            index:
+              prefix: loki_index_
+              period: 24h
+      # Garage S3 on TrueNAS (main pool), buckets and the "loki" key created in the Garage web UI
+      storage:
+        type: s3
+        bucketNames:
+          chunks: loki-chunks
+          ruler: loki-ruler
+          admin: loki-ruler # only used by Grafana Enterprise Logs
+        s3:
+          endpoint: 192.168.1.49:30188
+          region: garage
+          accessKeyId: ${LOKI_S3_ACCESS_KEY_ID}
+          secretAccessKey: ${LOKI_S3_SECRET_ACCESS_KEY}
+          s3ForcePathStyle: true
+          insecure: true
+      # Keep logs for 30 days; the compactor deletes older chunks from Garage
+      compactor:
+        retention_enabled: true
+        delete_request_store: s3
+      limits_config:
+        retention_period: 720h
+    singleBinary:
+      replicas: 1
+      # Write-ahead log and index cache only (the logs themselves live in Garage).
+      # Local path volume: no replication overhead on the node's disk.
+      persistence:
+        storageClass: openebs-hostpath
+        size: 10Gi
+      resources:
+        requests:
+          cpu: 10m
+          memory: 256Mi
+        limits:
+          memory: 1Gi
+    # Scalable-mode components and extras this setup doesn't use
+    read:
+      replicas: 0
+    write:
+      replicas: 0
+    backend:
+      replicas: 0
+    gateway:
+      enabled: false
+    chunksCache:
+      enabled: false
+    resultsCache:
+      enabled: false
+    lokiCanary:
+      enabled: false
+    test:
+      enabled: false
+    # Watches for Loki alerting-rule ConfigMaps; no Loki rules here
+    sidecar:
+      rules:
+        enabled: false
