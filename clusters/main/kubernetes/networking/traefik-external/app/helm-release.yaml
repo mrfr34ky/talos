@@ -63,7 +63,7 @@ spec:
       # fails) until the pod is restarted. Wait for DNS first.
       initContainers:
         - name: wait-for-dns
-          image: docker.io/library/busybox:1.37.0
+          image: docker.io/library/busybox:1.38.0
           command:
             - sh
             - -c
