@@ -5,6 +5,9 @@
 #   2. experimental.plugins               (plugin download)
 #   3. the "crowdsec" Middleware in extraObjects
 # Uncommenting only #1 breaks every route on this instance (middleware missing).
+# Two companions, also commented out (each is safe to uncomment on its own):
+#   4. deployment.initContainers          (wait for DNS before the plugin download)
+#   5. accessLog.fields                   (keep User-Agent for CrowdSec's bad-user-agent scenarios)
 #
 # Used as the bootstrap copy: clusters/<name>/kubernetes/networking/nginx-external/app/
 # (hidden from Flux by .sourceignore; the real traefik-external release takes over).
@@ -44,6 +47,27 @@ spec:
   values:
     deployment:
       replicas: 2
+      # # Traefik downloads the CrowdSec plugin once, at startup. After a node reboot it can start
+      # # before cluster DNS works, and then runs without the plugin (every route on this instance
+      # # fails) until the pod is restarted. Wait for DNS first.
+      # initContainers:
+        # - name: wait-for-dns
+          # image: docker.io/library/busybox:1.37.0
+          # command:
+            # - sh
+            # - -c
+            # - until nslookup plugins.traefik.io. >/dev/null 2>&1; do echo "waiting for DNS"; sleep 3; done
+          # securityContext:
+            # allowPrivilegeEscalation: false
+            # capabilities:
+              # drop: [ALL]
+            # readOnlyRootFilesystem: true
+          # resources:
+            # requests:
+              # cpu: 1m
+              # memory: 8Mi
+            # limits:
+              # memory: 32Mi
     podDisruptionBudget:
       enabled: true
       maxUnavailable: 1
@@ -88,6 +112,12 @@ spec:
     # CrowdSec reads these from the pod logs (agent acquisition: traefik-external-*)
     accessLog:
       enabled: true
+      # # Keep the User-Agent in the access log (headers are dropped by default and show
+      # # as "-"). CrowdSec's bad-user-agent scenarios (sqlmap, nikto, ...) need it.
+      # fields:
+        # headers:
+          # names:
+            # User-Agent: keep
 
     # # Downloaded from plugins.traefik.io at startup
     # experimental:
