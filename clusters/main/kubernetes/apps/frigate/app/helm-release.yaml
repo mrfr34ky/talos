@@ -37,6 +37,13 @@ spec:
     resources:
       requests:
         cpu: 50m
+    service:
+      webrtc:
+        type: LoadBalancer
+        loadBalancerIP: ${FRIGATE_IP}
+        integrations:
+          metallb:
+            enabled: true
     credentials:
       s3:
         type: s3
