@@ -34,7 +34,9 @@ data:
               "refId": "A",
               "datasource": { "type": "prometheus", "uid": "prometheus" },
               "expr": "node_hwmon_temp_celsius{job=\"proxmox-node-exporter\", chip=\"pci0000:00_0000:00:18_3\", sensor=\"temp1\"}",
-              "legendFormat": "Tctl"
+              "legendFormat": "Tctl",
+              "instant": true,
+              "range": false
             }
           ],
           "fieldConfig": {
@@ -45,7 +47,7 @@ data:
             },
             "overrides": []
           },
-          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "textMode": "value" }
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
         },
         {
           "id": 2,
@@ -135,7 +137,9 @@ data:
             {
               "refId": "A",
               "datasource": { "type": "prometheus", "uid": "prometheus" },
-              "expr": "max(node_hwmon_temp_celsius{job=\"proxmox-node-exporter\", chip=~\"nvme_nvme[0-9]+\", sensor=\"temp1\"})"
+              "expr": "max(node_hwmon_temp_celsius{job=\"proxmox-node-exporter\", chip=~\"nvme_nvme[0-9]+\", sensor=\"temp1\"})",
+              "instant": true,
+              "range": false
             }
           ],
           "fieldConfig": {
@@ -146,7 +150,7 @@ data:
             },
             "overrides": []
           },
-          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "textMode": "value" }
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
         },
         {
           "id": 6,
@@ -158,7 +162,9 @@ data:
             {
               "refId": "A",
               "datasource": { "type": "prometheus", "uid": "prometheus" },
-              "expr": "max(smartctl_device_temperature{job=\"truenas-smartctl\", temperature_type=\"current\"})"
+              "expr": "max(smartctl_device_temperature{job=\"truenas-smartctl\", temperature_type=\"current\"})",
+              "instant": true,
+              "range": false
             }
           ],
           "fieldConfig": {
@@ -169,7 +175,7 @@ data:
             },
             "overrides": []
           },
-          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "textMode": "value" }
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
         },
         {
           "id": 7,
