@@ -48,29 +48,29 @@ Key goals of this setup:
 
 ## 🧠 Design Decisions
 
-### Why Proxmox VE?
+### Proxmox VE
 - One machine runs the Talos node next to TrueNAS and other VMs
 - The Talos VM can be restarted, reached from the console, or rebuilt without touching the rest of the host
 - Proxmox is monitored from the cluster as well, so host and VM problems alert in Discord too
 
-### Why Talos Linux?
+### Talos Linux
 - Immutable, minimal OS reduces attack surface
 - No SSH or package manager
 - Fully API-driven, ideal for GitOps-based Kubernetes clusters
 
-### Why FluxCD?
+### FluxCD
 - Continuous reconciliation instead of one-shot deployments
 - Native Kubernetes integration, managed by the Flux Operator
 - Works seamlessly with SOPS for encrypted secrets
 
-### Why a Single-Node Cluster?
+### Single-Node Cluster
 - Simplifies operations and reduces complexity
 - Ideal for homelab and learning environments
 - Focuses on reproducibility rather than high availability: nightly offsite backups make a rebuild cheap
 
 ---
 
-## 📡 Networking Assumptions
+## 📡 Networking
 
 This cluster assumes a **simple and reliable home network environment**.
 
@@ -95,12 +95,9 @@ Everything that is reachable from the internet is protected by **[CrowdSec](http
 Internet → Cloudflare (WAF) → Cloudflare Tunnel → traefik-external + CrowdSec bouncer → app
 ~~~
 
-- The CrowdSec bouncer (a Traefik plugin) runs on every route of `traefik-external`, so it covers every external chart
-- The CrowdSec agent reads Traefik's access logs and the apps' login logs, and bans IPs that brute-force logins or probe for usernames
+- The CrowdSec bouncer (a Traefik plugin) runs on every route of `traefik-external`
 - Fail-closed: if the bouncer can't load, Traefik drops the public routes instead of serving them unprotected
 - The CrowdSec community blocklist blocks known bad IPs before they ever reach a login page; the instance is enrolled in the CrowdSec Console
-- Bans for login attacks are posted to Discord
-- Admin UIs such as Prometheus and Alertmanager sit behind Authentik single sign-on
 
 ---
 
@@ -113,12 +110,12 @@ Internet → Cloudflare (WAF) → Cloudflare Tunnel → traefik-external + Crowd
 | **Talos Linux**              | Immutable, API-driven Linux distribution purpose-built for Kubernetes                                      |
 | **FluxCD**                   | GitOps operator used for continuous reconciliation of cluster state                                        |
 | **Mend Renovate**            | Automatically tracks and updates charts, container images, and dependencies                                |
-| **GitHub Actions**           | Installs every changed HelmRelease into a throwaway k3d cluster before an update is merged; merges one at a time, 10 minutes apart |
+| **GitHub Actions**           | Installs every changed HelmRelease into a throwaway k3d cluster before an update is merged                 |
 | **SOPS**                     | Encryption of all secrets and credentials stored in Git, integrated with FluxCD                            |
 | **Clustertool**              | Bootstrap tool from TrueForge used to build the basic cluster structure and setup                          |
-| **CrowdSec**                 | Detects and blocks attacks on the public apps (see Security above)                               |
+| **CrowdSec**                 | Detects and blocks attacks on the public apps                                                              |
 | **Longhorn + VolSync**       | Block storage for app data, with nightly restic backups offsite                                            |
-| **kube-prometheus-stack + Gatus** | Metrics and alerts to Discord, plus the public status page                                            |
+| **kube-prometheus-stack + Gatus** | Metrics and alerts, plus the public status page                                            |
 
 ---
 
