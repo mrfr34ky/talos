@@ -1,0 +1,26 @@
+---
+# Longhorn's own NetworkPolicy for longhorn-manager (from the chart) only admits Longhorn's
+# components, so Prometheus' scrapes of the metrics endpoint time out. NetworkPolicies add up:
+# this one additionally lets Prometheus reach port 9500 (/metrics) for the Grafana dashboard.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: longhorn-manager-prometheus
+  namespace: longhorn-system
+spec:
+  podSelector:
+    matchLabels:
+      app: longhorn-manager
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-prometheus-stack
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9500
