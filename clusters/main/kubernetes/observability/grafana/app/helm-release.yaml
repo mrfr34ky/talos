@@ -64,6 +64,18 @@ spec:
                 # Encrypts the credentials Grafana stores in grafana.db (instead of the public default
                 # key). Changing it later makes those stored credentials unreadable.
                 GF_SECURITY_SECRET_KEY: "${GRAFANA_SECRET_KEY}"
+                # Single sign-on through Authentik forward auth (ingress middleware below, proxy
+                # provider "Grafana" bound to the "Grafana Admins" group): Grafana trusts the user
+                # name Authentik sends and logs that user in, creating it as Admin on first visit.
+                # The local admin login keeps working for the sidecars (no header, basic auth).
+                GF_AUTH_PROXY_ENABLED: "true"
+                GF_AUTH_PROXY_HEADER_NAME: X-authentik-username
+                GF_AUTH_PROXY_HEADER_PROPERTY: username
+                GF_AUTH_PROXY_AUTO_SIGN_UP: "true"
+                GF_AUTH_PROXY_HEADERS: "Email:X-authentik-email Name:X-authentik-name"
+                GF_USERS_AUTO_ASSIGN_ORG_ROLE: Admin
+                # Grafana's own sign-out would just log back in; end the Authentik session instead
+                GF_AUTH_SIGNOUT_REDIRECT_URL: "https://grafana.${DOMAIN_0}/outpost.goauthentik.io/sign_out"
                 # Built-in SQLite (grafana.db on the data volume) instead of CNPG. The chart always
                 # sets the Postgres settings below (host/password from cnpg secrets), even with cnpg
                 # disabled. Blank them: SQLite ignores them. Not null: the Kubernetes API drops null
@@ -210,6 +222,11 @@ spec:
         integrations:
           traefik:
             enabled: true
+            # Authentik forward auth (proxy provider "Grafana" on the embedded outpost)
+            middlewares:
+              - name: authentik
+                namespace: traefik-internal
+                expandObjectName: false
           certManager:
             enabled: true
             certificateIssuer: domain-0-le-prod
