@@ -89,6 +89,105 @@ spec:
               trigger:
                 # Free slot in the nightly backup chain (UTC, 7 minutes apart)
                 schedule: 59 0 * * *
+    # Downloaded at startup (init container) from grafana.com or a URL, pinned to a revision;
+    # Renovate bumps the revisions (the "# renovate: depName=" line must stay right above id:).
+    # Placeholders are swapped for our data source uid; $${...} stops Flux substituting them.
+    dashboards:
+      grafana:
+        # TrueNAS host (pick job truenas-node-exporter) and the Talos node (job node-exporter)
+        node-exporter-full:
+          enabled: true
+          failOnError: false
+          b64content: false
+          marketplace:
+            # renovate: depName="Node Exporter Full"
+            id: 1860
+            revision: 45
+        # TrueNAS disks (smartctl_exporter)
+        smartctl:
+          enabled: true
+          failOnError: false
+          b64content: false
+          datasource:
+            - name: "$${DS_PROMETHEUS}"
+              value: prometheus
+          marketplace:
+            # renovate: depName="SMARTctl Exporter Dashboard"
+            id: 22604
+            revision: 4
+        proxmox:
+          enabled: true
+          failOnError: false
+          b64content: false
+          datasource:
+            - name: "$${DS_PROMETHEUS}"
+              value: prometheus
+          marketplace:
+            # renovate: depName="Proxmox via Prometheus"
+            id: 10347
+            revision: 5
+        traefik:
+          enabled: true
+          failOnError: false
+          b64content: false
+          datasource:
+            - name: "$${DS_PROMETHEUS}"
+              value: prometheus
+          marketplace:
+            # renovate: depName="Traefik Official Kubernetes Dashboard"
+            id: 17347
+            revision: 9
+        longhorn:
+          enabled: true
+          failOnError: false
+          b64content: false
+          datasource:
+            - name: "$${DS_PROMETHEUS}"
+              value: prometheus
+          marketplace:
+            # renovate: depName="Longhorn Monitoring & Backups"
+            id: 16888
+            revision: 14
+        volsync:
+          enabled: true
+          failOnError: false
+          b64content: false
+          datasource:
+            - name: "$${DS_PROMETHEUS}"
+              value: prometheus
+          marketplace:
+            # renovate: depName="VolSync Dashboard"
+            id: 21356
+            revision: 3
+        crowdsec:
+          enabled: true
+          failOnError: false
+          b64content: false
+          marketplace:
+            # renovate: depName="CrowdSec Metrics"
+            id: 21419
+            revision: 6
+        # The outpost panels stay empty (the forward-auth outpost isn't scraped)
+        authentik:
+          enabled: true
+          failOnError: false
+          b64content: false
+          datasource:
+            - name: "$${DS_PROMETHEUS}"
+              value: prometheus
+          marketplace:
+            # renovate: depName="authentik"
+            id: 14837
+            revision: 2
+        # Flux Operator's own dashboard, pinned to the installed operator version (repositories/oci)
+        flux-performance:
+          enabled: true
+          failOnError: false
+          b64content: false
+          datasource:
+            - name: "$${DS_PROMETHEUS}"
+              value: prometheus
+          url: https://raw.githubusercontent.com/controlplaneio-fluxcd/flux-operator/v0.61.0/config/monitoring/dashboards/flux-performance.json
     ingress:
       main:
         enabled: true

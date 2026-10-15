@@ -1,0 +1,24 @@
+---
+# Flux controllers' own metrics (reconcile times, work queues, API calls) for the Flux Operator's
+# "Flux performance" Grafana dashboard. From flux-operator config/monitoring/flux-controllers.yaml.
+# Lives here rather than in flux-instance so a fresh Flux bootstrap never needs the Prometheus CRDs.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: flux-controllers
+  namespace: flux-system
+  labels:
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/part-of: flux
+spec:
+  namespaceSelector:
+    matchNames:
+      - flux-system
+  selector:
+    matchExpressions:
+      - key: app.kubernetes.io/part-of
+        operator: In
+        values:
+          - flux
+  podMetricsEndpoints:
+    - port: http-prom
