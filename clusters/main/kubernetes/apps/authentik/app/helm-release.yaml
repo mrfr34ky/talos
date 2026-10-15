@@ -153,79 +153,82 @@ spec:
               enabled: false  
           hosts:
             - host: auth.${DOMAIN_0}
-            - host: "balazs-deemix.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "tc.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "christine-deemix.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "frigate.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "lidarr.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "metube.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "prowlarr.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "qbit.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "radarr.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "sonarr.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "syncthing.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "pihole.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "krusader.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific    
-            - host: "filezilla.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "jdl.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "sabnzbd.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific      
-            - host: "tdarr.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "profilarr.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific
-            - host: "tracearr.${DOMAIN_0}"
-              paths:
-                - path: /outpost.goauthentik.io
-                  pathType: ImplementationSpecific                                            
+            # Per-app /outpost.goauthentik.io routes are no longer needed: with Traefik, the
+            # "authentik" forward-auth middleware on each app sends these paths to the outpost
+            # itself (it handles the login callback and sign-out). Leftovers from nginx.
+            # - host: "balazs-deemix.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "tc.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "christine-deemix.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "frigate.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "lidarr.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "metube.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "prowlarr.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "qbit.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "radarr.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "sonarr.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "syncthing.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "pihole.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "krusader.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "filezilla.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "jdl.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "sabnzbd.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "tdarr.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "profilarr.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
+            # - host: "tracearr.${DOMAIN_0}"
+              # paths:
+                # - path: /outpost.goauthentik.io
+                  # pathType: ImplementationSpecific
