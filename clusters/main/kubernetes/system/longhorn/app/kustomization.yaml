@@ -6,3 +6,4 @@ resources:
   - jobs
   - volumeSnapshotClass.yaml
   - ingress.yaml
+  - networkpolicy-prometheus.yaml
