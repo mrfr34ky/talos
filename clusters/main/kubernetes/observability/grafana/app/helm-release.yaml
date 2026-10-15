@@ -61,6 +61,9 @@ spec:
                 # The chart's default is a fixed "testpassword". Keep this a plain value: the chart
                 # copies it into its sidecars, which log in as admin to reload dashboards/data sources.
                 GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PWD}"
+                # Encrypts the credentials Grafana stores in grafana.db (instead of the public default
+                # key). Changing it later makes those stored credentials unreadable.
+                GF_SECURITY_SECRET_KEY: "${GRAFANA_SECRET_KEY}"
                 # Built-in SQLite (grafana.db on the data volume) instead of CNPG. The chart always
                 # sets the Postgres settings below (host/password from cnpg secrets), even with cnpg
                 # disabled. Blank them: SQLite ignores them. Not null: the Kubernetes API drops null
