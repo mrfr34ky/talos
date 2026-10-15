@@ -28,6 +28,9 @@ env:
 jobs:
   detect:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # label PRs that change untestable HelmReleases (see below)
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
 
@@ -198,6 +201,8 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+          echo "skipped=${#skipped[@]}" >> "$GITHUB_OUTPUT"
+
           # ---------- Matrix handling ----------
           if [ ${#filtered[@]} -eq 0 ]; then
             echo "matrix=[]" >> "$GITHUB_OUTPUT"
@@ -211,6 +216,21 @@ jobs:
             echo "$json"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
+
+      # A skipped HelmRelease was never installed, so a green test-summary would be misleading.
+      # automerge.yaml never merges PRs with this label. If labelling fails, this job fails and
+      # the PR stays unmerged too.
+      - name: Mark PRs with untested HelmReleases for a manual merge
+        if: >-
+          github.event_name == 'pull_request' &&
+          steps.set.outputs.skipped != '' && steps.set.outputs.skipped != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr edit "$PR_NUMBER" --add-label needs-manual-merge
+          echo "🛑 Labelled PR #$PR_NUMBER needs-manual-merge (it changes a HelmRelease on the skip list)"
 
   test:
     needs: detect
