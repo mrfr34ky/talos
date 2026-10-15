@@ -4,7 +4,8 @@
 # Merges one PR at a time, oldest first, and only when main has had no change for MERGE_SPACING_MINUTES,
 # so app upgrades don't all restart at once on the single node.
 # A PR qualifies when "HelmRelease Test" (test-summary) passed on its current commit; only that exact
-# commit is merged (--match-head-commit). PRs labelled system-upgrade (Talos/Kubernetes) never.
+# commit is merged (--match-head-commit). Never merged: PRs labelled system-upgrade (Talos/Kubernetes)
+# or needs-manual-merge (changes a HelmRelease that CI can't test, set by helmrelease-test.yaml).
 name: Automerge
 
 on:
@@ -47,12 +48,13 @@ jobs:
             exit 0
           fi
 
-          # Open, non-draft PRs from this repository labelled automerge (not system-upgrade), oldest first
+          # Open, non-draft PRs from this repository labelled automerge, oldest first,
+          # without system-upgrade or needs-manual-merge
           mapfile -t candidates < <(
             gh pr list --state open --label automerge --limit 100 \
               --json number,headRefOid,isDraft,isCrossRepository,labels,createdAt \
               --jq 'map(select((.isDraft | not) and (.isCrossRepository | not)
-                               and ([.labels[].name] | index("system-upgrade") | not)))
+                               and ([.labels[].name] | (index("system-upgrade") or index("needs-manual-merge")) | not)))
                     | sort_by(.createdAt) | .[] | "\(.number) \(.headRefOid)"'
           )
 
