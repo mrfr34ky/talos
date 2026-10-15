@@ -9,6 +9,7 @@ resources:
   - mosquitto/ks.yaml
   #- k8tz/ks.yaml
   - ext-nas/ks.yaml
+  - ext-garage/ks.yaml
   - ext-pikvm/ks.yaml
   - ext-jetkvm/ks.yaml
   - ext-prox/ks.yaml
