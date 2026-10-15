@@ -1,0 +1,316 @@
+---
+# Grafana "Server Temperatures" dashboard, picked up by Grafana's sidecar (label grafana_dashboard: "1").
+# Proxmox host sensors come from node-exporter on the host (job proxmox-node-exporter), the
+# TrueNAS disks from smartctl_exporter (job truenas-smartctl). Talos and TrueNAS are VMs and
+# have no CPU sensors of their own.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: temperatures-grafana-dashboard
+  namespace: kube-prometheus-stack
+  labels:
+    grafana_dashboard: "1"
+data:
+  temperatures.json: |
+    {
+      "title": "Server Temperatures",
+      "uid": "server-temperatures",
+      "tags": ["temperature", "proxmox", "truenas"],
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": true,
+      "timezone": "browser",
+      "time": { "from": "now-24h", "to": "now" },
+      "refresh": "1m",
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "CPU now",
+          "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "node_hwmon_temp_celsius{job=\"proxmox-node-exporter\", chip=\"pci0000:00_0000:00:18_3\", sensor=\"temp1\"}",
+              "legendFormat": "Tctl"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "celsius",
+              "decimals": 1,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 80 }, { "color": "red", "value": 90 } ] }
+            },
+            "overrides": []
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "textMode": "value" }
+        },
+        {
+          "id": 2,
+          "type": "stat",
+          "title": "CPU min",
+          "description": "Lowest Tctl in the selected time range",
+          "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "min_over_time(node_hwmon_temp_celsius{job=\"proxmox-node-exporter\", chip=\"pci0000:00_0000:00:18_3\", sensor=\"temp1\"}[$__range])",
+              "instant": true,
+              "range": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "celsius",
+              "decimals": 1,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 80 }, { "color": "red", "value": 90 } ] }
+            },
+            "overrides": []
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
+        },
+        {
+          "id": 3,
+          "type": "stat",
+          "title": "CPU avg",
+          "description": "Average Tctl in the selected time range",
+          "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "avg_over_time(node_hwmon_temp_celsius{job=\"proxmox-node-exporter\", chip=\"pci0000:00_0000:00:18_3\", sensor=\"temp1\"}[$__range])",
+              "instant": true,
+              "range": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "celsius",
+              "decimals": 1,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 80 }, { "color": "red", "value": 90 } ] }
+            },
+            "overrides": []
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
+        },
+        {
+          "id": 4,
+          "type": "stat",
+          "title": "CPU max",
+          "description": "Highest Tctl in the selected time range",
+          "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "max_over_time(node_hwmon_temp_celsius{job=\"proxmox-node-exporter\", chip=\"pci0000:00_0000:00:18_3\", sensor=\"temp1\"}[$__range])",
+              "instant": true,
+              "range": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "celsius",
+              "decimals": 1,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 80 }, { "color": "red", "value": 90 } ] }
+            },
+            "overrides": []
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value" }
+        },
+        {
+          "id": 5,
+          "type": "stat",
+          "title": "Hottest NVMe",
+          "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "max(node_hwmon_temp_celsius{job=\"proxmox-node-exporter\", chip=~\"nvme_nvme[0-9]+\", sensor=\"temp1\"})"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "celsius",
+              "decimals": 1,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 65 }, { "color": "red", "value": 75 } ] }
+            },
+            "overrides": []
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "textMode": "value" }
+        },
+        {
+          "id": 6,
+          "type": "stat",
+          "title": "Hottest HDD",
+          "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "max(smartctl_device_temperature{job=\"truenas-smartctl\", temperature_type=\"current\"})"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "celsius",
+              "decimals": 0,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 45 }, { "color": "red", "value": 50 } ] }
+            },
+            "overrides": []
+          },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "area", "textMode": "value" }
+        },
+        {
+          "id": 7,
+          "type": "timeseries",
+          "title": "CPU",
+          "description": "Tctl: the temperature the fan curve follows. Tccd1/Tccd2: each CPU chiplet. CPU Package: the motherboard's own reading.",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "node_hwmon_temp_celsius{job=\"proxmox-node-exporter\"} * on (instance, chip, sensor) group_left (label) node_hwmon_sensor_label{job=\"proxmox-node-exporter\", label=~\"Tctl|Tccd[0-9]+|CPU Package\"}",
+              "legendFormat": "{{label}}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "celsius", "decimals": 1 }, "overrides": [] },
+          "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["min", "mean", "max", "lastNotNull"] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+        },
+        {
+          "id": 8,
+          "type": "timeseries",
+          "title": "Fans",
+          "description": "Fans the motherboard reports. Fans without a name show as chip and sensor.",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "(node_hwmon_fan_rpm{job=\"proxmox-node-exporter\"} * on (instance, chip, sensor) group_left (label) node_hwmon_sensor_label{job=\"proxmox-node-exporter\"}) or on (instance, chip, sensor) label_join(node_hwmon_fan_rpm{job=\"proxmox-node-exporter\"}, \"label\", \" \", \"chip\", \"sensor\")",
+              "legendFormat": "{{label}}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "rotrpm", "decimals": 0 }, "overrides": [] },
+          "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["min", "mean", "max", "lastNotNull"] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+        },
+        {
+          "id": 9,
+          "type": "timeseries",
+          "title": "Motherboard",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "node_hwmon_temp_celsius{job=\"proxmox-node-exporter\"} * on (instance, chip, sensor) group_left (label) node_hwmon_sensor_label{job=\"proxmox-node-exporter\", label=~\"Motherboard|VRM\"}",
+              "legendFormat": "{{label}}"
+            },
+            {
+              "refId": "B",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "node_hwmon_temp_celsius{job=\"proxmox-node-exporter\"} * on (instance, chip) group_left node_hwmon_chip_names{job=\"proxmox-node-exporter\", chip_name=\"amdgpu\"}",
+              "legendFormat": "iGPU"
+            },
+            {
+              "refId": "C",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "node_hwmon_temp_celsius{job=\"proxmox-node-exporter\"} * on (instance, chip) group_left node_hwmon_chip_names{job=\"proxmox-node-exporter\", chip_name=~\"r8169.*\"}",
+              "legendFormat": "NIC"
+            },
+            {
+              "refId": "D",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "node_hwmon_temp_celsius{job=\"proxmox-node-exporter\"} * on (instance, chip) group_left node_hwmon_chip_names{job=\"proxmox-node-exporter\", chip_name=~\"mt79.*\"}",
+              "legendFormat": "Wi-Fi"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "celsius", "decimals": 1 }, "overrides": [] },
+          "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["min", "mean", "max", "lastNotNull"] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+        },
+        {
+          "id": 10,
+          "type": "timeseries",
+          "title": "Memory (DDR5)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "label_replace(node_hwmon_temp_celsius{job=\"proxmox-node-exporter\"} * on (instance, chip) group_left node_hwmon_chip_names{job=\"proxmox-node-exporter\", chip_name=\"spd5118\"}, \"dimm\", \"DIMM $1\", \"chip\", \".*_005([0-9])\")",
+              "legendFormat": "{{dimm}}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "celsius", "decimals": 1 }, "overrides": [] },
+          "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["min", "mean", "max", "lastNotNull"] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+        },
+        {
+          "id": 11,
+          "type": "timeseries",
+          "title": "NVMe (Proxmox)",
+          "gridPos": { "h": 9, "w": 8, "x": 0, "y": 20 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "label_replace(node_hwmon_temp_celsius{job=\"proxmox-node-exporter\", chip=~\"nvme_nvme[0-9]+\", sensor=\"temp1\"}, \"device\", \"$1\", \"chip\", \"nvme_(nvme[0-9]+)\") * on (instance, device) group_left (model) node_nvme_info{job=\"proxmox-node-exporter\"}",
+              "legendFormat": "{{device}} · {{model}}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "celsius", "decimals": 1 }, "overrides": [] },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+        },
+        {
+          "id": 12,
+          "type": "timeseries",
+          "title": "SATA SSDs (Proxmox)",
+          "description": "The BX500 pairs (rpool and ssd). Needs the drivetemp kernel module on the Proxmox host.",
+          "gridPos": { "h": 9, "w": 8, "x": 8, "y": 20 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "label_replace(node_hwmon_temp_celsius{job=\"proxmox-node-exporter\"} * on (instance, chip) group_left node_hwmon_chip_names{job=\"proxmox-node-exporter\", chip_name=\"drivetemp\"}, \"port\", \"SATA $1\", \"chip\", \"target([0-9:]+)_.*\")",
+              "legendFormat": "{{port}}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "celsius", "decimals": 0 }, "overrides": [] },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+        },
+        {
+          "id": 13,
+          "type": "timeseries",
+          "title": "HDDs (TrueNAS)",
+          "description": "smartctl_exporter skips disks in standby, so a sleeping disk leaves a gap.",
+          "gridPos": { "h": 9, "w": 8, "x": 16, "y": 20 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "expr": "smartctl_device_temperature{job=\"truenas-smartctl\", temperature_type=\"current\"} > 0",
+              "legendFormat": "{{device}}"
+            }
+          ],
+          "fieldConfig": { "defaults": { "unit": "celsius", "decimals": 0 }, "overrides": [] },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+        }
+      ]
+    }
