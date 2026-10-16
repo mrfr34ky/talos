@@ -12,6 +12,9 @@ dummyEnv:
   DOMAIN_0: dummy.local
   DOMAIN_0_EMAIL: ci@dummy.local
   DOMAIN_0_CLOUDFLARE_TOKEN: dummy-cloudflare-token
+  DOMAIN_2: dummy2.local
+  DOMAIN_2_EMAIL: ci@dummy2.local
+  DOMAIN_2_CLOUDFLARE_TOKEN: dummy-cloudflare-token-2
   GMAIL_USER: ci@dummy.local
   PODNET: 10.42.0.0/16
   METALLB_RANGE: 192.168.20.211-192.168.20.219

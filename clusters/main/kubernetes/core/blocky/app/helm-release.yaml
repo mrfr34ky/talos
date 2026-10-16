@@ -54,6 +54,10 @@ spec:
         dnsChallenge:
           enabled: false
           domain: dns01.clouddns.com
+      - domain: "${DOMAIN_2}"
+        dnsChallenge:
+          enabled: false
+          domain: dns01.clouddns.com
 
       forward:
         enabled: false
