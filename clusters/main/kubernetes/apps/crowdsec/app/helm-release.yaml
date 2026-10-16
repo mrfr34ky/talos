@@ -161,18 +161,64 @@ spec:
       notifications:
         # Sends to Discord. The URL is expanded by CrowdSec from the LAPI env (Secret crowdsec-discord);
         # $$ stops Flux from substituting it, so it never lands in the ConfigMap.
-        # Alerts within 30s are sent together, up to 10 per message.
-        # Fields are pointers: print them with {{ }}, never via printf (that would print addresses).
+        # Alerts within 30s are sent together, up to 5 per message: one embed per banned IP, kept small
+        # so a message stays under Discord's 6000-character limit.
+        # Each embed lists what the alert's events recorded: the Traefik route or app that was hit,
+        # source country and AS, request methods and status codes, up to 6 paths, 2 user agents and
+        # any usernames tried. <t:…:T> makes Discord show the times in the reader's own time zone.
+        # Fields are pointers: print them with {{ }} or pass them to functions that take a string
+        # (trunc, toDate, lower), never via printf (that would print addresses).
         discord.yaml: |
           type: http
           name: discord
           log_level: info
           group_wait: 30s
-          group_threshold: 10
+          group_threshold: 5
           max_retry: 5
           timeout: 10s
           format: |
-            {"username":"CrowdSec","embeds":[{"title":"Login attack blocked","color":15158332,"description":"{{ range $a := . }}{{ range $a.Decisions }}{{ if $a.Source.Cn }}:flag_{{ lower $a.Source.Cn }}: {{ end }}**{{ .Value }}** banned for {{ .Duration }} · `{{ $a.Scenario }}` ({{ $a.EventsCount }} events)\n{{ end }}{{ end }}"}]}
+            {{- $first := true -}}
+            {"username":"CrowdSec","embeds":[
+            {{- range $a := . -}}
+              {{- if not $first }},{{ end }}{{ $first = false -}}
+              {{- $ip := "" -}}{{- $dur := "" -}}
+              {{- range $d := $a.Decisions }}{{ $ip = trunc 64 $d.Value }}{{ $dur = trunc 32 $d.Duration }}{{ end -}}
+              {{- $flag := "" -}}{{- if $a.Source.Cn }}{{ $flag = printf ":flag_%s: " (lower $a.Source.Cn) }}{{ end -}}
+              {{- $sites := list -}}{{- $paths := list -}}{{- $uas := list -}}{{- $users := list -}}
+              {{- $verbs := dict -}}{{- $codes := dict -}}
+              {{- range $e := $a.Events }}{{ range $m := $e.Meta -}}
+                {{- if eq $m.Key "traefik_router_name" }}{{ $sites = append $sites (trimSuffix "@kubernetes" $m.Value) }}{{ end -}}
+                {{- if and (eq $m.Key "service") (ne $m.Value "http") }}{{ $sites = append $sites $m.Value }}{{ end -}}
+                {{- if eq $m.Key "http_path" }}{{ $paths = append $paths (trunc 60 (replace "`" "'" $m.Value)) }}{{ end -}}
+                {{- if eq $m.Key "http_user_agent" }}{{ $uas = append $uas (trunc 90 $m.Value) }}{{ end -}}
+                {{- if and (has $m.Key (list "target_user" "user")) $m.Value (ne $m.Value "-") }}{{ $users = append $users (trunc 40 $m.Value) }}{{ end -}}
+                {{- if eq $m.Key "http_verb" }}{{ $_ := set $verbs $m.Value (add1 (get $verbs $m.Value | default 0)) }}{{ end -}}
+                {{- if eq $m.Key "http_status" }}{{ $_ := set $codes $m.Value (add1 (get $codes $m.Value | default 0)) }}{{ end -}}
+              {{- end }}{{ end -}}
+              {{- $fields := list -}}
+              {{- $s := $sites | uniq -}}
+              {{- if $s }}{{ $fields = append $fields (printf "{\"name\":\"Site\",\"value\":%s}" (toJson (join ", " $s))) }}{{ end -}}
+              {{- $src := list -}}
+              {{- if $a.Source.Cn }}{{ $src = append $src $a.Source.Cn }}{{ end -}}
+              {{- if $a.Source.AsNumber }}{{ $src = append $src (trim (printf "AS%s %s" $a.Source.AsNumber $a.Source.AsName)) }}{{ end -}}
+              {{- if $src }}{{ $fields = append $fields (printf "{\"name\":\"Source\",\"value\":%s,\"inline\":true}" (toJson (trunc 100 (join " · " $src)))) }}{{ end -}}
+              {{- $req := list -}}
+              {{- range $k := keys $verbs | sortAlpha }}{{ $req = append $req (printf "%s×%v" $k (get $verbs $k)) }}{{ end -}}
+              {{- range $k := keys $codes | sortAlpha }}{{ $req = append $req (printf "%s×%v" $k (get $codes $k)) }}{{ end -}}
+              {{- if $req }}{{ $fields = append $fields (printf "{\"name\":\"Requests\",\"value\":%s,\"inline\":true}" (toJson (join " " $req))) }}{{ end -}}
+              {{- $p := $paths | uniq -}}
+              {{- if $p }}{{ $fields = append $fields (printf "{\"name\":%s,\"value\":%s}" (toJson (printf "Paths (%d distinct)" (len $p))) (toJson (printf "`%s`" (join "`\n`" (slice $p 0 (min 6 (len $p))))))) }}{{ end -}}
+              {{- $u := $uas | uniq -}}
+              {{- if $u }}{{ $fields = append $fields (printf "{\"name\":\"User agent\",\"value\":%s}" (toJson (join "\n" (slice $u 0 (min 2 (len $u)))))) }}{{ end -}}
+              {{- $us := $users | uniq -}}
+              {{- if $us }}{{ $fields = append $fields (printf "{\"name\":\"Usernames tried\",\"value\":%s,\"inline\":true}" (toJson (join ", " (slice $us 0 (min 5 (len $us)))))) }}{{ end -}}
+              {"author":{"name":"CrowdSec · login attack blocked"},"color":15158332,
+              "title":{{ toJson (printf "%s%s banned for %s" $flag $ip $dur) }},
+              "description":"`{{ $a.Scenario }}` · {{ $a.EventsCount }} events · <t:{{ unixEpoch (toDate "2006-01-02T15:04:05Z07:00" $a.StartAt) }}:T>–<t:{{ unixEpoch (toDate "2006-01-02T15:04:05Z07:00" $a.StopAt) }}:T>",
+              "fields":[{{ join "," $fields }}],
+              "footer":{"text":"CrowdSec alert #{{ $a.ID }}"}}
+            {{- end -}}
+            ]}
           url: $${CROWDSEC_DISCORD_WEBHOOK}
           method: POST
           headers:
