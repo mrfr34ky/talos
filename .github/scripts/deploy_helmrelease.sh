@@ -6,10 +6,17 @@
 #   - strips CNPG backup/recovery settings but keeps the database itself
 #   - rewrites storage classes that don't exist in k3d (openebs-hostpath, longhorn) to local-path
 #   - skips dependency charts this repo doesn't have instead of failing
+#   - tells helm template that the Prometheus Operator API exists (see TEMPLATE_API_VERSIONS)
 # Flux postRenderers are not applied (plain helm); CI-only overrides go in ci/<chart>.yaml.
 set -euo pipefail
 
 HELMRELEASE_PATH="${1:-}"
+
+# helm template has no cluster to ask, so .Capabilities only knows the built-in APIs. Charts that
+# refuse to render an enabled ServiceMonitor without it (traefik: "You have to deploy
+# monitoring.coreos.com/v1 first") fail before anything is installed. The rendered ServiceMonitors
+# then make the script install the kube-prometheus-stack CRDs before the real install.
+TEMPLATE_API_VERSIONS=(--api-versions monitoring.coreos.com/v1)
 
 # --------------------------------------------------
 # Colors & Formatting
@@ -130,6 +137,7 @@ install_dependency_crds() {
     --version "$DEPENDENCY_CHART_VERSION" \
     --include-crds \
     --no-hooks \
+    "${TEMPLATE_API_VERSIONS[@]}" \
     --values "$dependency_values" \
   | yq ea -r 'select(.kind == "CustomResourceDefinition")' \
   > "$rendered_crds"
@@ -368,11 +376,13 @@ print_section "🔧 Installing dependencies"
 
 RENDERED="$(mktemp)"
 
+# stderr stays visible: under set -e a failing render ends the job, and this is its only message
 helm template "$RELEASE_NAME" "$CHART_REF" \
   --version "$CHART_VERSION" \
   --namespace "$NAMESPACE" \
+  "${TEMPLATE_API_VERSIONS[@]}" \
   "${HELM_VALUES_ARGS[@]}" \
-  > "$RENDERED" 2>/dev/null
+  > "$RENDERED"
 
 # --------------------------------------------------
 # Detect dependencies
