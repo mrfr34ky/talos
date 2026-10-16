@@ -48,4 +48,4 @@ spec:
         verifySsl: false # Proxmox self-signed certificate
     configmap:
       dashboard:
-        enabled: false # no Grafana in this cluster
+        enabled: false # Grafana downloads its own Proxmox dashboard (observability/grafana)

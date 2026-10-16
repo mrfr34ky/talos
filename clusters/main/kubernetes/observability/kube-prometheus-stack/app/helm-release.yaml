@@ -36,9 +36,8 @@ spec:
         forceConflicts: true
     cleanPrometheusOperatorObjectNames: true
 
-    # Needed for the Alerts badge (alertmanager_alerts) and, later, the Watchdog heartbeat.
-    # No AlertmanagerConfig is wired in yet, so the chart's default config is used:
-    # everything goes to the "null" receiver until a notification channel is added.
+    # Needed for the Alerts badge (alertmanager_alerts) and the Watchdog heartbeat.
+    # Alerts go to Discord and the Watchdog to healthchecks.io: see app/alertmanagerconfig.yaml.
     alertmanager:
       enabled: true
       ingress:
