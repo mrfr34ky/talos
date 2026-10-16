@@ -62,6 +62,9 @@ spec:
         password: ${mealie_CNPG_PWD}
         cluster:
           singleNode: true
+          # One Postgres pod instead of the chart's two: a replica on the same node adds
+          # no availability, and the nightly backup to S3 covers the data.
+          instances: 1
         #mode: recovery
         backups:
           enabled: true
