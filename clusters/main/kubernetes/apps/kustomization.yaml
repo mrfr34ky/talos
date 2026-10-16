@@ -47,4 +47,6 @@ resources:
   - authentik/ks.yaml
   - tracearr/ks.yaml
   - seerr/ks.yaml
+  #####################MARIADB######################
+  - wordpress/ks.yaml
   

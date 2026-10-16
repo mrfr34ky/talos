@@ -257,7 +257,7 @@ spec:
         - name: PARSERS
           value: "crowdsecurity/cri-logs crowdsecurity/whitelists"
         - name: COLLECTIONS
-          value: "crowdsecurity/traefik Dominic-Wagner/vaultwarden crowdsecurity/nextcloud firix/authentik LePresidente/jellyseerr corvese/apache-guacamole"
+          value: "crowdsecurity/traefik Dominic-Wagner/vaultwarden crowdsecurity/nextcloud firix/authentik LePresidente/jellyseerr corvese/apache-guacamole crowdsecurity/wordpress"
         # DISABLE_PARSERS=crowdsecurity/whitelists was a test setting. Leaving the
         # whitelist active stops CrowdSec from banning private IPs: your LAN, and the
         # cloudflared pod if real client IPs don't reach the logs.
