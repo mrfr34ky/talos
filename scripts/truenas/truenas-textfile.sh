@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# TrueNAS facts for node-exporter's textfile collector (node-exporter runs as a TrueNAS custom app
-# with --collector.textfile.directory pointing at this directory). Scraped by the
+# TrueNAS facts for node-exporter's textfile collector (node-exporter runs as a TrueNAS custom app,
+# as user apps 568:568, with --collector.textfile.directory pointing at this directory). Scraped by the
 # "truenas-node-exporter" ScrapeConfig; used by the kromgo TrueNAS badge and the truenas PrometheusRule.
 #
 # Run as root from a TrueNAS cron job (System > Advanced Settings > Cron Jobs), every 5 minutes:
@@ -31,5 +31,8 @@ trap 'rm -f "$tmp"' EXIT
     echo "truenas_zpool_allocated_bytes{zpool=\"$name\"} $alloc"
   done <<<"$pools"
 } >"$tmp"
-chmod 0644 "$tmp"
+# Hand the file to apps (568), the user node-exporter runs as. main/apps has an NFSv4 ACL, which can
+# refuse a chmod ("Operation not permitted"); the inherited ACL then decides access, so carry on.
+chown 568:568 "$tmp"
+chmod 0644 "$tmp" 2>/dev/null || true
 mv "$tmp" "$out"
