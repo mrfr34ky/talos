@@ -150,6 +150,11 @@ spec:
         main:
           enabled: true
           ingressClassName: external
+          annotations:
+            # Cloudflare Access sits in front of the public hostname, so probing it would only
+            # reach the Access login page; check Guacamole itself instead.
+            gatus.home-operations.com/endpoint: |
+              url: http://guacamole.guacamole.svc.cluster.local:10123/
           integrations:
             traefik:
               enabled: true
