@@ -1,0 +1,99 @@
+---
+# guacd opens the RDP/VNC sessions. Limit it to the machines Guacamole has a connection
+# for, so a hijacked session (the only user is an admin and could add connections) can't
+# reach the rest of the LAN or the cluster. Add a machine here when you add a connection.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: guacd
+  namespace: guacamole
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: guacamole
+      pod.name: guacd
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Only the Guacamole web app talks to guacd
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: guacamole
+              pod.name: main
+      ports:
+        - protocol: TCP
+          port: 10124
+  egress:
+    # RDP connections
+    - to:
+        - ipBlock:
+            cidr: 192.168.1.5/32
+        - ipBlock:
+            cidr: 192.168.1.26/32
+      ports:
+        - protocol: TCP
+          port: 3389
+    # VNC connections
+    - to:
+        - ipBlock:
+            cidr: 192.168.1.6/32
+      ports:
+        - protocol: TCP
+          port: 5900
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# The web app only needs guacd, its database and DNS: no direct way into the LAN or the
+# Kubernetes API if Guacamole itself were compromised.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: guacamole-web
+  namespace: guacamole
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: guacamole
+      pod.name: main
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: guacamole
+              pod.name: guacd
+      ports:
+        - protocol: TCP
+          port: 10124
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: guacamole-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
