@@ -62,6 +62,8 @@ dummyEnv:
   VAULTWARDEN_CNPG_PWD: dummy-password
   VW_TOKEN: dummy-admin-token
   VW_SMTP_PWD: dummy-password
+  WORDPRESS_ADMIN_USER: ci-admin
+  WORDPRESS_ADMIN_PWD: dummy-password
   # CSKEY (CrowdSec Console enroll key) is deliberately absent: see ci/crowdsec.yaml
   # CLOUDFLARED_TUNNEL_TOKEN / TAILSCALE_AUTH_KEY: those apps are in skipList (need real credentials)
 
