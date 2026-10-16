@@ -52,6 +52,17 @@ spec:
           type: "cloudflare"
           # for cloudflare
           cfapitoken: "${DOMAIN_0_CLOUDFLARE_TOKEN}"
+        # Second domain: same setup, with its own Cloudflare token (DNS edit on that zone only)
+        - name: domain-2-le-staging
+          email: "${DOMAIN_2_EMAIL}"
+          server: 'https://acme-staging-v02.api.letsencrypt.org/directory'
+          type: "cloudflare"
+          cfapitoken: "${DOMAIN_2_CLOUDFLARE_TOKEN}"
+        - name: domain-2-le-prod
+          email: "${DOMAIN_2_EMAIL}"
+          server: 'https://acme-v02.api.letsencrypt.org/directory'
+          type: "cloudflare"
+          cfapitoken: "${DOMAIN_2_CLOUDFLARE_TOKEN}"
 
     ## Remove these if you do NOT want to use clusterissuer
     clusterCertificates:
@@ -65,3 +76,9 @@ spec:
           hosts:
             - ${DOMAIN_0}
             - '*.${DOMAIN_0}'
+        - name: domain-2-wildcard
+          enabled: true
+          certificateIssuer: domain-2-le-prod
+          hosts:
+            - ${DOMAIN_2}
+            - '*.${DOMAIN_2}'
