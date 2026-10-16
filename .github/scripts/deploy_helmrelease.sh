@@ -300,7 +300,8 @@ if yq -e '
   changed=true
 fi
 
-# Remove NFS persistence entries
+# NFS shares don't exist in CI: mount an emptyDir at the same place instead. Dropping the mount
+# would leave the image's own directory, which the app user often can't write (ytptube: /downloads).
 if yq -e '
   (.persistence? // {})
   | to_entries[]
@@ -308,11 +309,10 @@ if yq -e '
 ' "$VALUES_FILE" >/dev/null 2>&1; then
 
   yq -i '
-    .persistence |= with_entries(select(.value.type? != "nfs")) |
-    del(.persistence | select(. == {}))
+    (.persistence[] | select(.type? == "nfs")) |= (.type = "emptyDir" | del(.server) | del(.path))
   ' "$VALUES_FILE"
 
-  echo "      ⚠️ NFS persistence removed for CI"
+  echo "      ⚠️ NFS persistence replaced by emptyDir for CI"
   changed=true
 fi
 

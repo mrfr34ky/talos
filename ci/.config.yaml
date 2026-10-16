@@ -39,6 +39,7 @@ dummyEnv:
   LOKI_S3_SECRET_ACCESS_KEY: dummy-secret
   GUACAMOLE_CNPG_PWD: dummy-password
   HA_CNPG_PWD: dummy-password
+  homarr: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef # SECRET_ENCRYPTION_KEY: 64 hex chars
   NEXTCLOUD_USER: ci
   NEXTCLOUD_PWD: dummy-password
   NEXTCLOUD_CNPG_PWD: dummy-password
