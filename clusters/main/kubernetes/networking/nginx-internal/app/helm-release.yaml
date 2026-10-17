@@ -5,6 +5,8 @@
 # hides networking/nginx-*), so there is no duplicate. Once Flux is up, the real
 # networking/traefik-internal/app/helm-release.yaml takes over this Helm release (same name and
 # namespace) and upgrades it to the full config. Keep .sourceignore in place.
+# The ServiceMonitor is commented out: a fresh cluster has no Prometheus Operator CRDs yet, and the
+# Traefik chart refuses to render one without them. The real release turns it on once Flux runs.
 # =====================================================================================
 ---
 # yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
@@ -26,6 +28,8 @@ spec:
       interval: 15m
   timeout: 20m
   maxHistory: 3
+  driftDetection:
+    mode: warn
   install:
     createNamespace: true
     crds: CreateReplace
@@ -38,6 +42,32 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  # gatus-sidecar (observability/gatus) uses this IngressClass annotation as the default for every
+  # "internal" Ingress. The chart can't annotate its IngressClass, so patch the rendered object.
+  # Pods resolve via public DNS, where LAN-only hosts don't exist, so Gatus asks Blocky instead.
+  # The status page is public: hide hostnames, URLs and errors (errors can name other hosts).
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: IngressClass
+              name: internal
+            patch: |
+              apiVersion: networking.k8s.io/v1
+              kind: IngressClass
+              metadata:
+                name: internal
+                annotations:
+                  gatus.home-operations.com/endpoint: |
+                    group: Internal
+                    client:
+                      dns-resolver: udp://${BLOCKY_IP}:53
+                    ui:
+                      hide-hostname: true
+                      hide-url: true
+                      hide-errors: true
+                    alerts:
+                      - type: discord
   values:
     deployment:
       replicas: 2
@@ -118,7 +148,15 @@ spec:
               - X-authentik-meta-outpost
               - X-authentik-meta-provider
               - X-authentik-meta-app
-              - X-authentik-meta-version
+              - X-authentik-meta-version        
+    # Prometheus metrics (entrypoint "metrics", port 9100) on their own in-cluster Service,
+    # scraped through a ServiceMonitor for the Traefik dashboard in Grafana
+    metrics:
+      prometheus:
+        service:
+          enabled: true
+        # serviceMonitor:
+          # enabled: true
     service:
       annotations:
         metallb.io/ip-allocated-from-pool: main

@@ -95,7 +95,7 @@ spec:
       default:
         defaultCertificate:
           secretName: certificate-issuer-domain-0-wildcard
-    # Dashboard at https://traefik.${DOMAIN_0}/dashboard/ (trailing slash required).
+    # Dashboard at https://traefik-internal.${DOMAIN_0}/dashboard/ (trailing slash required).
     # Uses the default wildcard cert via the websecure entrypoint; LAN-only via allowlist.
     ingressRoute:
       dashboard:
@@ -113,7 +113,10 @@ spec:
         spec:
           ipAllowList:
             sourceRange:
-              - 192.168.1.0/24
+              - 192.168.1.0/24   # LAN clients; add VPN/other VLAN ranges here if needed
+      # Authentik forward-auth, shared by both Traefik instances. Apps reference it as
+      # name: authentik, namespace: traefik-internal, expandObjectName: false
+      # (raw Ingress: traefik-internal-authentik@kubernetescrd).
       - apiVersion: traefik.io/v1alpha1
         kind: Middleware
         metadata:

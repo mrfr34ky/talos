@@ -139,8 +139,9 @@ spec:
 
 
     # Dashboard at https://traefik-external.${DOMAIN_0}/dashboard/ (trailing slash required).
-    # This instance is port-forwarded from the WAN, so the LAN-only allowlist is what
-    # keeps the dashboard private: internet clients get a 403.
+    # Public traffic reaches this instance through the Cloudflare Tunnel (cloudflared -> this
+    # Service). The LAN-only allowlist keeps the dashboard private: tunnel requests come from the
+    # cloudflared pod's cluster address, outside 192.168.1.0/24, and get a 403.
     ingressRoute:
       dashboard:
         enabled: true
