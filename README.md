@@ -41,7 +41,7 @@ Key goals of this setup:
 
 * 🔁 **Reproducibility** – rebuild the entire cluster from Git
 * 🔒 **Immutability & Security** – minimal OS, no SSH, API-driven management, CrowdSec in front of everything public
-* 📈 **Observability** – metrics, logs, dashboards, alerts to Discord, and a public status page
+* 📈 **Observability** – metrics, logs, dashboards, alerts, and a public status page
 * 🤖 **Automation-first** – dependency updates are tested in CI and merged without manual intervention
 
 ---
@@ -51,7 +51,7 @@ Key goals of this setup:
 ### Proxmox VE
 - One machine runs the Talos node next to TrueNAS and other VMs
 - The Talos VM can be restarted, reached from the console, or rebuilt without touching the rest of the host
-- Proxmox is monitored from the cluster as well, so host and VM problems alert in Discord too
+- Proxmox is monitored from the cluster as well
 
 ### Talos Linux
 - Immutable, minimal OS reduces attack surface
@@ -168,7 +168,6 @@ All secrets and credentials are stored in this repository **encrypted with SOPS*
 | **Let's Encrypt**    | TLS certificates through cert-manager                                         |
 | **S3 storage**       | Offsite VolSync (restic) and CloudNativePG backups                            |
 | **CrowdSec Console** | Community blocklist and security overview                                     |
-| **Discord**          | Alerts from Alertmanager, Gatus, Proxmox, TrueNAS, and CrowdSec               |
 | **Healthchecks.io**  | Dead man's switch for Alertmanager                                            |
 | **UptimeRobot**      | Monitors the home internet connection                                         |
 
@@ -179,7 +178,7 @@ All secrets and credentials are stored in this repository **encrypted with SOPS*
 * 📈 **Metrics** via kube-prometheus-stack, which also scrapes Proxmox, TrueNAS (including disk SMART data), and the UPS power draw
 * 📊 **Dashboards** in Grafana for the cluster
 * 📜 **Logs** of every pod collected by Alloy and kept in Loki for 30 days
-* 🚨 **Alerting** to Discord from Alertmanager, Gatus, Proxmox, TrueNAS, and CrowdSec, with a Healthchecks.io dead man's switch in case Alertmanager itself goes quiet
+* 🚨 **Alerting** from Alertmanager, Gatus, Proxmox, TrueNAS, and CrowdSec, with a Healthchecks.io dead man's switch in case Alertmanager itself goes quiet
 * 🌍 **Service visibility** through the Gatus [status page](https://status.mrfr34ky.workers.dev) and UptimeRobot
 * 🧮 **Cluster statistics** exposed via Kromgo and Shields.io, served through a Cloudflare Worker
 
