@@ -49,4 +49,5 @@ resources:
   - seerr/ks.yaml
   #####################MARIADB######################
   - wordpress/ks.yaml
+  - pixelfed/ks.yaml
   
