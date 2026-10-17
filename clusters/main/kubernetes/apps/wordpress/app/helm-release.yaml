@@ -71,6 +71,9 @@ spec:
                 # wp-config.php keeps the database password it was installed with. This makes the
                 # image rewrite the database settings from the chart's values on every start.
                 WORDPRESS_OVERRIDE_DATABASE_SETTINGS: "yes"
+                # The override "restores" the permissions of the wp-config.php symlink (777) onto the
+                # real file; this runs after it and sets the file back to 440 (wp-content 775/664).
+                WORDPRESS_RESET_DATA_PERMISSIONS: "yes"
     persistence:
       # wp-content (themes, plugins, uploads) and wp-config.php
       config:
