@@ -121,3 +121,40 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
+---
+# Postgres only accepts Guacamole (web app and guacd's start-up check), its own instances and the
+# CNPG operator
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: guacamole-cnpg
+  namespace: guacamole
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: guacamole-cnpg-main
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: guacamole
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: guacamole-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cloudnative-pg
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 5432
