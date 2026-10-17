@@ -343,6 +343,8 @@ spec:
             VPN_SERVICE_PROVIDER: privado
             VPN_TYPE: openvpn
             SERVER_HOSTNAMES: bru-005.vpn.privado.io
+            # gluetun's built-in IP for bru-005 is outdated
+            OPENVPN_ENDPOINT_IP: 91.148.240.80
             FIREWALL: "on"
             # Kubelet probes and the LAN
             FIREWALL_OUTBOUND_SUBNETS: 192.168.1.0/24
