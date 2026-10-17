@@ -139,6 +139,12 @@ spec:
           # encrypted data in the database become unreadable.
           APP_KEY: ${PIXELFED_APP_KEY}
           MAIL_PASSWORD: ${PIXELFED_SMTP_PWD}
+      # NordVPN service credentials for the gluetun sidecar only (not passed to the app containers)
+      vpn:
+        enabled: true
+        data:
+          OPENVPN_USER: ${OPENVPN_USER}
+          OPENVPN_PASSWORD: ${OPENVPN_PASSWORD}
     workload:
       main:
         podSpec:
@@ -317,6 +323,33 @@ spec:
       enabled: true
       # Same as MariaDB: unset, it stays at the chart's PLACEHOLDER default. Letters and digits only.
       password: ${PIXELFED_REDIS_PWD}
+    # Outgoing traffic (federation deliveries, profile/media fetches, mail) leaves through VPN
+    # instead of the home connection; the Cloudflare Tunnel only hides incoming traffic. One sidecar
+    # covers all three containers (shared pod network). The firewall is the kill switch: with the
+    # VPN down, nothing leaves except to the cluster and the LAN. The chart appends the pod and
+    # service ranges to FIREWALL_OUTBOUND_SUBNETS and port 80 to FIREWALL_INPUT_PORTS (Traefik).
+    addons:
+      gluetun:
+        enabled: true
+        container:
+          resources:
+            # The add-on defaults to true, which drops everything but cpu/memory (the tun device)
+            excludeExtra: false
+            limits:
+              truecharts.org/tun: 1
+          envFrom:
+            - secretRef:
+                name: vpn
+          env:
+            VPN_SERVICE_PROVIDER: nordvpn
+            VPN_TYPE: openvpn
+            SERVER_COUNTRIES: Belgium
+            FIREWALL: "on"
+            # Kubelet probes and the LAN
+            FIREWALL_OUTBOUND_SUBNETS: 192.168.1.0/24
+            # Keep the cluster DNS so pixelfed-mariadb/-redis resolve. Lookups go through CoreDNS,
+            # outside the tunnel, but don't reveal the home IP to the servers Pixelfed talks to.
+            DNS_KEEP_NAMESERVER: "on"
     ingressMiddlewares:
       traefik:
         secure-headers:
