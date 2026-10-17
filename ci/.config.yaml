@@ -32,6 +32,7 @@ dummyEnv:
   AUTHENTIK_CNPG_PWD: dummy-password
   AUTHENTIK_REDIS_PWD: dummy-password
   AUTHENTIK_SMTP_PWD: dummy-password
+  BLOCKY_REDIS_PWD: dummyredispassword
   COLLABORA_USER: ci
   COLLABORA_PWD: dummy-password
   CROWDSEC_BOUNCER_KEY: dummy-bouncer-key
@@ -51,19 +52,30 @@ dummyEnv:
   OPENVPN_PASSWORD: dummy-password
   PAPERLESS_ADM_PWD: dummy-password
   PAPERLESS_CNPG_PWD: dummy-password
+  PAPERLESS_REDIS_PWD: dummyredispassword
   PGADMIN_PWD: dummy-password
+  PIXELFED_APP_KEY: base64:Y2ktZHVtbXktcGl4ZWxmZWQtYXBwLWtleS0wMTIzNDU= # Laravel key: "base64:" + 32 bytes
+  PIXELFED_SMTP_PWD: dummy-password
+  PIXELFED_MARIADB_PWD: dummypassword
+  PIXELFED_MARIADB_ROOT_PWD: dummyrootpassword
+  PIXELFED_REDIS_PWD: dummyredispassword
   PLEX_TOKEN: dummy-plex-token
   PVE_USER: ci@pve
   PVE_TOKEN_NAME: ci
   PVE_TOKEN_VALUE: dummy-token
+  SEERR_CNPG_PWD: dummy-password
   TDARR_API: dummy-api-key
   TRACEARR_JWT_SECRET: dummy-jwt-secret-0123456789abcdef
   TRACEARR_COOKIE_SECRET: dummy-cookie-secret-0123456789abcdef
+  TRACEARR_REDIS_PWD: dummyredispassword
+  TRACEARR_CNPG_PWD: dummy-password
   VAULTWARDEN_CNPG_PWD: dummy-password
   VW_TOKEN: dummy-admin-token
   VW_SMTP_PWD: dummy-password
   WORDPRESS_ADMIN_USER: ci-admin
   WORDPRESS_ADMIN_PWD: dummy-password
+  WORDPRESS_MARIADB_PWD: dummypassword
+  WORDPRESS_MARIADB_ROOT_PWD: dummyrootpassword
   # CSKEY (CrowdSec Console enroll key) is deliberately absent: see ci/crowdsec.yaml
   # CLOUDFLARED_TUNNEL_TOKEN / TAILSCALE_AUTH_KEY: those apps are in skipList (need real credentials)
 
