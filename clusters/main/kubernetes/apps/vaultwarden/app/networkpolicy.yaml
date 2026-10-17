@@ -1,0 +1,95 @@
+---
+# Reachable only through traefik-external (and Homarr's status check); can reach its
+# database, DNS and the public internet (Gmail SMTP, website icons), not the LAN or the cluster.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: vaultwarden
+      app.kubernetes.io/name: vaultwarden
+      pod.name: main
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-external
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: homarr
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: vaultwarden-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Public internet only
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+---
+# Postgres only accepts Vaultwarden, its own instances and the CNPG operator
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vaultwarden-cnpg
+  namespace: vaultwarden
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: vaultwarden-cnpg-main
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: vaultwarden
+              app.kubernetes.io/name: vaultwarden
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: vaultwarden-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cloudnative-pg
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 5432
