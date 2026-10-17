@@ -1,0 +1,14 @@
+---
+# Postgres (CNPG) pods stop after the apps that write to them and before Longhorn, which holds their
+# volumes: on shutdown kubelet stops pods from the lowest priority up (shutdownGracePeriodByPodPriority
+# in talos/patches/all/30-kubelet.yaml). postgres-priority-policy.yaml sets it on every CNPG Cluster.
+# Don't delete it while Clusters still reference it: CNPG couldn't create their pods any more.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: cnpg-postgres
+value: 500000000
+globalDefault: false
+# Only orders shutdown; never evicts other pods to make room
+preemptionPolicy: Never
+description: "CloudNativePG Postgres instances: stop after the apps, before Longhorn"

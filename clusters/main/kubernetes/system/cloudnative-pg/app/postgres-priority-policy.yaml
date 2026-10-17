@@ -1,0 +1,38 @@
+---
+# TrueCharts' CNPG template has no priorityClassName setting, so this policy adds the cnpg-postgres
+# PriorityClass to every CNPG Cluster when it is created or updated (install, helm upgrade, restore).
+# CNPG then recreates the instance pod with that priority. Clusters that already name a priority
+# class are left alone. If the policy ever fails, the Cluster is written unchanged (failurePolicy
+# Ignore) and Postgres simply stops together with the apps, as before.
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata:
+  name: cnpg-postgres-priority
+spec:
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["postgresql.cnpg.io"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["clusters"]
+  matchConditions:
+    - name: no-priority-class-yet
+      expression: '!has(object.spec.priorityClassName) || object.spec.priorityClassName == ""'
+  failurePolicy: Ignore
+  reinvocationPolicy: Never
+  mutations:
+    - patchType: ApplyConfiguration
+      applyConfiguration:
+        expression: >-
+          Object{
+            spec: Object.spec{
+              priorityClassName: "cnpg-postgres"
+            }
+          }
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: cnpg-postgres-priority
+spec:
+  policyName: cnpg-postgres-priority
