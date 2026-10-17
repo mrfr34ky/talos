@@ -111,6 +111,11 @@ spec:
           integrations:
             traefik:
               enabled: true
+              # code-server runs with --auth none: Authentik is its only login
+              middlewares:
+              - name: authentik
+                namespace: traefik-internal
+                expandObjectName: false
             certManager:
               enabled: true
               certificateIssuer: domain-0-le-prod
