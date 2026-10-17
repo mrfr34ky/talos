@@ -1,0 +1,58 @@
+---
+# Postgres only accepts tracearr's pods, its own instances, the CNPG operator
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tracearr-cnpg
+  namespace: tracearr
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: tracearr-app-template-cnpg-main
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: tracearr
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: tracearr-app-template-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cloudnative-pg
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 5432
+---
+# Redis only accepts tracearr's pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tracearr-redis
+  namespace: tracearr
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: tracearr
+      app.kubernetes.io/name: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: tracearr
+      ports:
+        - protocol: TCP
+          port: 6379

@@ -1,0 +1,22 @@
+---
+# Redis only accepts blocky's pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: blocky-redis
+  namespace: blocky
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: blocky
+      app.kubernetes.io/name: redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: blocky
+      ports:
+        - protocol: TCP
+          port: 6379
