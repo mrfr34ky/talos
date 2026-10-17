@@ -64,7 +64,8 @@ spec:
           port: 53
 ---
 # The web app only needs guacd, its database and DNS: no direct way into the LAN or the
-# Kubernetes API if Guacamole itself were compromised.
+# Kubernetes API if Guacamole itself were compromised. Reachable only through traefik-external
+# (Cloudflare Access) and the Homarr/Gatus status checks.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -76,7 +77,22 @@ spec:
       app.kubernetes.io/instance: guacamole
       pod.name: main
   policyTypes:
+    - Ingress
     - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-external
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: homarr
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: gatus
+      ports:
+        - protocol: TCP
+          port: 8080
   egress:
     - to:
         - podSelector:
