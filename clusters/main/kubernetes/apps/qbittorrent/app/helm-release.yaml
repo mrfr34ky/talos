@@ -81,21 +81,34 @@ spec:
         mountPath: /media/downloads/completed
         server: 192.168.1.49
         type: nfs  
+    # VPN service credentials for the gluetun sidecar only (not passed to qBittorrent)
+    secret:
+      vpn:
+        enabled: true
+        data:
+          OPENVPN_USER: ${OPENVPN_USER}
+          OPENVPN_PASSWORD: ${OPENVPN_PASSWORD}
+    # All of qBittorrent's traffic leaves through the VPN; the firewall is the kill switch. The
+    # chart appends the pod and service ranges to FIREWALL_OUTBOUND_SUBNETS and the web UI port to
+    # FIREWALL_INPUT_PORTS. The tun device comes from generic-device-plugin.
     addons:
       gluetun:
         enabled: true
         container:
           resources:
+            # The add-on defaults to true, which drops everything but cpu/memory (the tun device)
+            excludeExtra: false
             limits:
               truecharts.org/tun: 1
+          envFrom:
+            - secretRef:
+                name: vpn
           env:
             FIREWALL: "on"
             FIREWALL_OUTBOUND_SUBNETS: "192.168.1.0/24"
             VPN_SERVICE_PROVIDER: "nordvpn"
             VPN_TYPE: "openvpn"
-            OPENVPN_USER: ${OPENVPN_USER}
-            OPENVPN_PASSWORD: ${OPENVPN_PASSWORD}
-            SERVER_REGIONS: "Belgium"
+            SERVER_COUNTRIES: "Belgium"
             SERVER_CITIES: "Brussels"
             HTTPPROXY: "on"
             HTTPPROXY_LOG: "on"
