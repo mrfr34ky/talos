@@ -1,0 +1,348 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: pixelfed
+  namespace: pixelfed
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: app-template
+      version: 21.0.2
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  # Pixelfed (federated photo sharing) on the jippi/docker-pixelfed image, public through the
+  # Cloudflare Tunnel and traefik-external. No Authentik: the ActivityPub endpoints must stay open
+  # to other servers. APP_DOMAIN is written into every federated post and handle, so the host
+  # can't change once the instance has federated.
+  # One pod runs the web server, the Horizon queue worker and the scheduler, so the media share
+  # needs no RWX volume. Each container runs the image's entrypoint (caches, storage link); only
+  # the web container runs the first-time setup and the database migrations.
+  values:
+    global:
+      stopAll: false
+      traefik:
+        # The chart's default headers middleware answers CORS preflights itself, with no allowed
+        # origin, which breaks browser-based Mastodon clients. Pixelfed handles CORS for its API.
+        commonMiddlewares: []
+    TZ: Europe/Brussels
+    resources:
+      requests:
+        cpu: 10m
+    image:
+      repository: ghcr.io/jippi/docker-pixelfed
+      pullPolicy: IfNotPresent
+      tag: v0.15.0-apache-8.4-bookworm@sha256:0b1d1f6fd867ad626fc04e34b7e5b9d2d87e83cab6e2f9d6c168a74f1a03dd07
+    # The entrypoint starts as root and drops to www-data (uid 33) through su/gosu; Apache binds
+    # port 80 as root. The chart adds CHOWN/SETUID/SETGID/FOWNER/DAC_OVERRIDE and NET_BIND_SERVICE.
+    securityContext:
+      container:
+        runAsNonRoot: false
+        readOnlyRootFilesystem: false
+        runAsUser: 0
+        runAsGroup: 0
+        capabilities:
+          # Apache's root parent signals its www-data children; su writes an audit record
+          add:
+            - KILL
+            - AUDIT_WRITE
+    service:
+      main:
+        ports:
+          main:
+            port: 80
+    # Pixelfed reads its settings from the environment; Laravel gives these precedence over .env
+    configmap:
+      env:
+        enabled: true
+        data:
+          APP_NAME: Memories
+          APP_ENV: production
+          APP_DEBUG: "false"
+          APP_URL: https://memories.${DOMAIN_0}
+          APP_DOMAIN: memories.${DOMAIN_0}
+          ADMIN_DOMAIN: memories.${DOMAIN_0}
+          SESSION_DOMAIN: memories.${DOMAIN_0}
+          # Pixelfed expects UTC internally; TZ (Europe/Brussels) still sets the container clock
+          APP_TIMEZONE: UTC
+          # Requests come through cloudflared and Traefik
+          TRUST_PROXIES: "*"
+          # Accounts are created by the admin only (php artisan user:create)
+          OPEN_REGISTRATION: "false"
+          ENFORCE_EMAIL_VERIFICATION: "true"
+          # Shown publicly on the instance's About page and in its API
+          INSTANCE_CONTACT_EMAIL: ${GMAIL_USER}
+          # Mastodon-compatible API with personal access tokens (mobile apps, the Memories poster)
+          OAUTH_ENABLED: "true"
+          ACTIVITY_PUB: "true"
+          AP_REMOTE_FOLLOW: "true"
+          AP_INBOX: "true"
+          AP_OUTBOX: "true"
+          AP_SHAREDINBOX: "true"
+          DB_CONNECTION: mysql
+          DB_HOST: '{{ printf "%s-mariadb" .Release.Name }}'
+          DB_PORT: "3306"
+          DB_DATABASE: pixelfed
+          DB_USERNAME: pixelfed
+          # Renovate image updates otherwise leave new migrations pending
+          DB_APPLY_NEW_MIGRATIONS_AUTOMATICALLY: "1"
+          REDIS_CLIENT: phpredis
+          REDIS_HOST: '{{ printf "%s-redis" .Release.Name }}'
+          REDIS_PORT: "6379"
+          CACHE_DRIVER: redis
+          BROADCAST_DRIVER: redis
+          QUEUE_DRIVER: redis
+          SESSION_DRIVER: database
+          MAIL_DRIVER: smtp
+          MAIL_MAILER: smtp
+          MAIL_HOST: smtp.gmail.com
+          MAIL_PORT: "587"
+          MAIL_ENCRYPTION: tls
+          MAIL_USERNAME: ${GMAIL_USER}
+          MAIL_FROM_ADDRESS: ${GMAIL_USER}
+          MAIL_FROM_NAME: Memories
+          LOG_CHANNEL: stderr
+          LOG_LEVEL: info
+          # PHP memory for image processing (the image's default is 128M)
+          DOCKER_APP_PHP_MEMORY_LIMIT: 256M
+      # The entrypoint scripts expect /var/www/.env to exist; the settings above make it unnecessary
+      dotenv:
+        enabled: true
+        data:
+          .env: |
+            # Settings come from the environment (HelmRelease values), not from this file.
+    secret:
+      env:
+        enabled: true
+        data:
+          # Laravel encryption key (base64:...). Never change it: sessions, 2FA secrets and other
+          # encrypted data in the database become unreadable.
+          APP_KEY: ${PIXELFED_APP_KEY}
+          MAIL_PASSWORD: ${PIXELFED_SMTP_PWD}
+    workload:
+      main:
+        podSpec:
+          containers:
+            main:
+              envFrom:
+                - configMapRef:
+                    name: env
+                - secretRef:
+                    name: env
+              env:
+                DOCKER_SERVICE_NAME: web
+                # 01 chowns the read-only .env and the NFS share; 02 only lints .env
+                ENTRYPOINT_SKIP_SCRIPTS: "01-permissions.sh 02-check-config.sh"
+                DB_PASSWORD:
+                  secretKeyRef:
+                    expandObjectName: false
+                    name: '{{ printf "%s-%s" .Release.Name "mariadbcreds" }}'
+                    key: mariadb-password
+                REDIS_PASSWORD:
+                  secretKeyRef:
+                    expandObjectName: false
+                    name: '{{ printf "%s-%s" .Release.Name "rediscreds" }}'
+                    key: redis-password
+              # Pixelfed's routes only answer on APP_DOMAIN, so the probes send that Host header
+              probes:
+                liveness:
+                  enabled: true
+                  type: http
+                  path: /api/service/health-check
+                  httpHeaders:
+                    Host: memories.${DOMAIN_0}
+                readiness:
+                  enabled: true
+                  type: http
+                  path: /api/service/health-check
+                  httpHeaders:
+                    Host: memories.${DOMAIN_0}
+                startup:
+                  enabled: true
+                  type: http
+                  path: /api/service/health-check
+                  httpHeaders:
+                    Host: memories.${DOMAIN_0}
+                  spec:
+                    # The first start migrates the database and imports the city list
+                    initialDelaySeconds: 10
+                    periodSeconds: 10
+                    timeoutSeconds: 5
+                    failureThreshold: 90
+                    successThreshold: 1
+            # The worker and the scheduler skip the first-time setup and the migrations (web runs them)
+            horizon:
+              enabled: true
+              primary: false
+              imageSelector: image
+              args:
+                - gosu
+                - www-data
+                - php
+                - artisan
+                - horizon
+              envFrom:
+                - configMapRef:
+                    name: env
+                - secretRef:
+                    name: env
+              env:
+                DOCKER_SERVICE_NAME: worker
+                ENTRYPOINT_SKIP_SCRIPTS: "01-permissions.sh 02-check-config.sh 11-first-time-setup.sh 12-migrations.sh"
+                DB_PASSWORD:
+                  secretKeyRef:
+                    expandObjectName: false
+                    name: '{{ printf "%s-%s" .Release.Name "mariadbcreds" }}'
+                    key: mariadb-password
+                REDIS_PASSWORD:
+                  secretKeyRef:
+                    expandObjectName: false
+                    name: '{{ printf "%s-%s" .Release.Name "rediscreds" }}'
+                    key: redis-password
+              probes:
+                liveness:
+                  enabled: false
+                readiness:
+                  enabled: false
+                startup:
+                  enabled: false
+            scheduler:
+              enabled: true
+              primary: false
+              imageSelector: image
+              args:
+                - gosu
+                - www-data
+                - php
+                - artisan
+                - schedule:work
+              envFrom:
+                - configMapRef:
+                    name: env
+                - secretRef:
+                    name: env
+              env:
+                DOCKER_SERVICE_NAME: cron
+                ENTRYPOINT_SKIP_SCRIPTS: "01-permissions.sh 02-check-config.sh 11-first-time-setup.sh 12-migrations.sh"
+                DB_PASSWORD:
+                  secretKeyRef:
+                    expandObjectName: false
+                    name: '{{ printf "%s-%s" .Release.Name "mariadbcreds" }}'
+                    key: mariadb-password
+                REDIS_PASSWORD:
+                  secretKeyRef:
+                    expandObjectName: false
+                    name: '{{ printf "%s-%s" .Release.Name "rediscreds" }}'
+                    key: redis-password
+              probes:
+                liveness:
+                  enabled: false
+                readiness:
+                  enabled: false
+                startup:
+                  enabled: false
+    persistence:
+      # Uploaded media, OAuth keys and the entrypoint's state, on the TrueNAS dataset. Not on
+      # Longhorn (no replica rebuilds for bulk media); back it up with ZFS snapshots on TrueNAS.
+      storage:
+        enabled: true
+        type: nfs
+        server: 192.168.1.49
+        path: /mnt/main/apps/pixelfed
+        mountPath: /var/www/storage
+        targetSelectAll: true
+      dotenv:
+        enabled: true
+        type: configmap
+        objectName: dotenv
+        mountPath: /var/www/.env
+        subPath: .env
+        readOnly: true
+        targetSelectAll: true
+    mariadb:
+      enabled: true
+      mariadbUsername: pixelfed
+      mariadbDatabase: pixelfed
+      # The chart doesn't generate these: unset, they stay at its public PLACEHOLDER defaults.
+      # MariaDB re-applies them on every start (--init-file), and Pixelfed reads DB_PASSWORD from
+      # the same pixelfed-mariadbcreds Secret, so changing them later is safe. Letters and digits
+      # only: they end up in SQL, shell and URL strings.
+      password: ${PIXELFED_MARIADB_PWD}
+      rootPassword: ${PIXELFED_MARIADB_ROOT_PWD}
+      # The sub-chart doesn't see the parent's credentials, so it gets its own copy
+      credentials:
+        s3:
+          type: s3
+          url: "${S3URL}"
+          bucket: "${S3PREFIX}-pixelfed"
+          accessKey: "${S3ID}"
+          secretKey: "${S3KEY}"
+          encrKey: "${S3KEY}"
+      persistence:
+        data:
+          # Metadata only (the media is on NFS); the chart default is 100Gi
+          size: 10Gi
+          volsync:
+            - name: b2
+              type: restic
+              credentials: s3
+              dest:
+                enabled: true
+              src:
+                enabled: true
+                trigger:
+                  # Next free slot after WordPress's MariaDB at the end of the nightly chain (UTC)
+                  schedule: 19 5 * * *
+    redis:
+      enabled: true
+      # Same as MariaDB: unset, it stays at the chart's PLACEHOLDER default. Letters and digits only.
+      password: ${PIXELFED_REDIS_PWD}
+    ingressMiddlewares:
+      traefik:
+        secure-headers:
+          enabled: true
+          type: headers
+          data:
+            stsSeconds: 63072000
+            forceSTSHeader: true
+            contentTypeNosniff: true
+            customRequestHeaders:
+              X-Forwarded-Proto: https
+    ingress:
+      main:
+        enabled: true
+        ingressClassName: external
+        integrations:
+          traefik:
+            enabled: true
+            middlewares:
+              - name: secure-headers
+          certManager:
+            enabled: true
+            certificateIssuer: domain-0-le-prod
+          nginx:
+            enabled: false
+        hosts:
+          - host: memories.${DOMAIN_0}
+            paths:
+              - path: /
+                pathType: Prefix
