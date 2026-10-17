@@ -6,8 +6,22 @@ config:
   maxPods: 250
   crashLoopBackOff:
     maxContainerRestartPeriod: 60s
-  shutdownGracePeriod: 90s
-  shutdownGracePeriodCriticalPods: 60s
+  # On reboot/upgrade, stop pods in priority order: apps (incl. Postgres) first, then Longhorn
+  # (longhorn-critical), then system-critical. Longhorn must outlive every pod that writes to its
+  # volumes; with the old 90s/60s split it counted as non-critical and stopped together with the
+  # apps (HA's core.restore_state was zeroed on 2026-10-17). Values are ceilings: kubelet moves on
+  # once a group has stopped. 180s covers CNPG's 180s smart shutdown.
+  # The two plain fields must be 0s: kubelet rejects them next to the priority list, and 0s keeps
+  # Talos from re-adding its 30s/10s defaults.
+  shutdownGracePeriod: 0s
+  shutdownGracePeriodCriticalPods: 0s
+  shutdownGracePeriodByPodPriority:
+    - priority: 0
+      shutdownGracePeriodSeconds: 180
+    - priority: 1000000000
+      shutdownGracePeriodSeconds: 60
+    - priority: 2000000000
+      shutdownGracePeriodSeconds: 60
   imageGCHighThresholdPercent: 50
   imageGCLowThresholdPercent: 30
   imageMinimumGCAge: "30m"
