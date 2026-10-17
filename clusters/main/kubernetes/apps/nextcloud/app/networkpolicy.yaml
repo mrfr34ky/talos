@@ -1,0 +1,124 @@
+---
+# Nextcloud's own pods (app, nginx, Collabora, Imaginary, notify_push, Redis, cron jobs) talk freely
+# to each other. From outside: traefik-external (web and Collabora) and Homarr's status check.
+# Out: its Postgres, DNS, traefik-external (own URL), the TrueNAS SMB share and the public internet.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: nextcloud
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: nextcloud
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-external
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9980
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: homarr
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: nextcloud
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: nextcloud-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Its own URL and Collabora: hostAliases point the public name at traefik-external
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-external
+      ports:
+        - protocol: TCP
+          port: 8443
+        - protocol: TCP
+          port: 8000
+    # TrueNAS SMB share (files_external)
+    - to:
+        - ipBlock:
+            cidr: 192.168.1.49/32
+      ports:
+        - protocol: TCP
+          port: 445
+    # Public internet only
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+---
+# Postgres only accepts Nextcloud's pods, its own instances and the CNPG operator
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nextcloud-cnpg
+  namespace: nextcloud
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: nextcloud-cnpg-main
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: nextcloud
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: nextcloud-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cloudnative-pg
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 5432
