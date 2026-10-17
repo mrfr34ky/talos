@@ -1,0 +1,26 @@
+---
+# Incoming only from traefik-internal, Homarr: closes the direct, Authentik-free path from other pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: profilarr-ingress
+  namespace: profilarr
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: profilarr
+      app.kubernetes.io/name: profilarr
+      pod.name: main
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-internal
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: homarr
+      ports:
+        - protocol: TCP
+          port: 6868

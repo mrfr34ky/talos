@@ -57,3 +57,45 @@ spec:
               - 192.168.0.0/16
               - 100.64.0.0/10
               - 169.254.0.0/16
+---
+# Incoming only from traefik-internal, Homarr, sonarr, radarr and Prometheus (metrics): closes the direct, Authentik-free path from other pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prowlarr-ingress
+  namespace: prowlarr
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: prowlarr
+      app.kubernetes.io/name: prowlarr
+      pod.name: main
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-internal
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: homarr
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: sonarr
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: radarr
+      ports:
+        - protocol: TCP
+          port: 9696
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-prometheus-stack
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9697
