@@ -38,8 +38,9 @@ spec:
     # routingMode: native
     envoy:
       enabled: false
+    # Flow visibility: kubectl exec -n kube-system ds/cilium -- hubble observe
     hubble:
-      enabled: false
+      enabled: true
     cluster:
       name: main
       id: 1
