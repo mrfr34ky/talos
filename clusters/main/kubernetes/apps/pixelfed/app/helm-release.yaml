@@ -30,10 +30,11 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
-  # Pixelfed (federated photo sharing) on the jippi/docker-pixelfed image, public through the
-  # Cloudflare Tunnel and traefik-external. No Authentik: the ActivityPub endpoints must stay open
-  # to other servers. APP_DOMAIN is written into every federated post and handle, so the host
-  # can't change once the instance has federated.
+  # Pixelfed (federated photo sharing) on the jippi/docker-pixelfed image. LAN-only for now
+  # (internal); to go public, switch the ingress to external (Cloudflare Tunnel, traefik-external).
+  # No Authentik: once public, the ActivityPub endpoints must stay open to other servers.
+  # APP_DOMAIN is written into every federated post and handle, so the host can't change once the
+  # instance has federated.
   # One pod runs the web server, the Horizon queue worker and the scheduler, so the media share
   # needs no RWX volume. Each container runs the image's entrypoint (caches, storage link); only
   # the web container runs the first-time setup and the database migrations.
@@ -330,7 +331,8 @@ spec:
     ingress:
       main:
         enabled: true
-        ingressClassName: external
+        # LAN-only until the instance is ready to federate
+        ingressClassName: internal
         integrations:
           traefik:
             enabled: true
