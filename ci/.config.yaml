@@ -60,6 +60,8 @@ dummyEnv:
   PIXELFED_MARIADB_ROOT_PWD: dummyrootpassword
   PIXELFED_REDIS_PWD: dummyredispassword
   PLEX_TOKEN: dummy-plex-token
+  PRIVADO_USER: ci
+  PRIVADO_PWD: dummy-password
   PVE_USER: ci@pve
   PVE_TOKEN_NAME: ci
   PVE_TOKEN_VALUE: dummy-token

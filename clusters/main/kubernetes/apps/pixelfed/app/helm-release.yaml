@@ -139,12 +139,11 @@ spec:
           # encrypted data in the database become unreadable.
           APP_KEY: ${PIXELFED_APP_KEY}
           MAIL_PASSWORD: ${PIXELFED_SMTP_PWD}
-      # NordVPN service credentials for the gluetun sidecar only (not passed to the app containers)
       vpn:
         enabled: true
         data:
-          OPENVPN_USER: ${OPENVPN_USER}
-          OPENVPN_PASSWORD: ${OPENVPN_PASSWORD}
+          OPENVPN_USER: ${PRIVADO_USER}
+          OPENVPN_PASSWORD: ${PRIVADO_PWD}
     workload:
       main:
         podSpec:
@@ -341,9 +340,13 @@ spec:
             - secretRef:
                 name: vpn
           env:
-            VPN_SERVICE_PROVIDER: nordvpn
+            VPN_SERVICE_PROVIDER: privado
             VPN_TYPE: openvpn
-            SERVER_COUNTRIES: Belgium
+            # Brussels server (UDP 1194). A single hostname is gluetun's narrowest filter: if Privado
+            # retires it or a gluetun update drops it, the VPN stays down until this is changed
+            # (bru-006 is the other Brussels server).
+            SERVER_HOSTNAMES: bru-005.vpn.privado.io
+            OPENVPN_ENDPOINT_PORT: "1194"
             FIREWALL: "on"
             # Kubelet probes and the LAN
             FIREWALL_OUTBOUND_SUBNETS: 192.168.1.0/24
