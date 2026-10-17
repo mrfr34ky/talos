@@ -316,6 +316,14 @@ if yq -e '
   changed=true
 fi
 
+# gluetun VPN sidecar: k3d has no truecharts.org/tun device (generic-device-plugin) and CI has no
+# VPN account, so the pod would never schedule. Test the app without it.
+if yq -e '.addons.gluetun.enabled == true' "$VALUES_FILE" >/dev/null 2>&1; then
+  yq -i '.addons.gluetun.enabled = false' "$VALUES_FILE"
+  echo "      ⚠️ gluetun VPN sidecar disabled for CI"
+  changed=true
+fi
+
 # CNPG: keep the database, drop S3 backups and recovery (CI has no bucket; a recovery would hang)
 if yq -e '[.cnpg[]? | (has("backups") or has("recovery") or has("mode"))] | any' "$VALUES_FILE" >/dev/null 2>&1; then
   yq -i 'del(.cnpg[].backups) | del(.cnpg[].recovery) | del(.cnpg[].mode)' "$VALUES_FILE"
