@@ -4,3 +4,4 @@ resources:
   - namespace.yaml
   - gatus-discord.secret.yaml
   - helm-release.yaml
+  - networkpolicy.yaml

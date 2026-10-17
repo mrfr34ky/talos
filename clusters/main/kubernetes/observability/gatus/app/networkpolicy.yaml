@@ -1,0 +1,24 @@
+---
+# Reachable only through traefik-external (the status Worker comes in that way). Outgoing stays
+# open: checking everything is Gatus's job.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gatus
+  namespace: gatus
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: gatus
+      app.kubernetes.io/name: gatus
+      pod.name: main
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-external
+      ports:
+        - protocol: TCP
+          port: 8080
