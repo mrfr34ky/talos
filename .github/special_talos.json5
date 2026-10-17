@@ -4,7 +4,9 @@
       // ---------------------------------------------------------------------------------------------
       // Auto-merge policy. Renovate never merges by itself, it only labels PRs "automerge".
       // .github/workflows/automerge.yaml merges those after the "HelmRelease Test" passed, one at a
-      // time and at least 10 minutes apart. Later rules win over earlier ones.
+      // time and at least 10 minutes apart. Later rules win over earlier ones; addLabels add up.
+      // Every rule that keeps a PR manual also labels it "needs-manual-merge", which the Automerge
+      // workflow refuses even if a PR somehow carries "automerge" too.
       // ---------------------------------------------------------------------------------------------
       {
         "description": ["Renovate never merges by itself (overrides the trueforge preset); the Automerge workflow does"],
@@ -17,7 +19,8 @@
       {
         "description": ["Never auto-merge major updates"],
         "matchUpdateTypes": ["major"],
-        "automerge": false
+        "automerge": false,
+        "addLabels": ["needs-manual-merge"]
       },
       {
         "description": ["Label minor updates for auto-merge, except critical components"],
@@ -39,14 +42,15 @@
           "/kromgo/", "/metrics-server/", "/node-feature-discovery/",
           "/traefik/", "/cert-manager/", "/cloudnative-pg/"
         ],
-        "automerge": false
+        "automerge": false,
+        "addLabels": ["needs-manual-merge"]
       },
       {
-        "description": ["Label patch updates for auto-merge, except Talos, Flux, the CI cluster, tailscale and cloudflared"],
+        "description": ["Label patch updates for auto-merge, except Talos, Flux, the CI cluster, tailscale, cloudflared and CloudNativePG"],
         "matchUpdateTypes": ["patch"],
         "matchPackageNames": [
           "!/siderolabs/", "!/flux-operator/", "!/flux-instance/", "!/k3s-io/", "!/k3d-io/",
-          "!/tailscale/", "!/cloudflared/"
+          "!/tailscale/", "!/cloudflared/", "!/cloudnative-pg/"
         ],
         "addLabels": ["automerge"]
       },
@@ -54,12 +58,13 @@
         "description": ["Talos, Flux and the CI cluster: patch updates need a manual merge"],
         "matchUpdateTypes": ["patch"],
         "matchPackageNames": ["/siderolabs/", "/flux-operator/", "/flux-instance/", "/k3s-io/", "/k3d-io/"],
-        "automerge": false
+        "automerge": false,
+        "addLabels": ["needs-manual-merge"]
       },
       {
-        "description": ["Label digest and pin updates for auto-merge, except Talos/Kubernetes, the CI cluster, tailscale and cloudflared"],
+        "description": ["Label digest and pin updates for auto-merge, except Talos/Kubernetes, the CI cluster, tailscale, cloudflared and CloudNativePG"],
         "matchUpdateTypes": ["digest", "pin", "pinDigest"],
-        "matchPackageNames": ["!/siderolabs/", "!/k3s-io/", "!/k3d-io/", "!/tailscale/", "!/cloudflared/"],
+        "matchPackageNames": ["!/siderolabs/", "!/k3s-io/", "!/k3d-io/", "!/tailscale/", "!/cloudflared/", "!/cloudnative-pg/"],
         "addLabels": ["automerge"]
       },
       // ---------------------------------------------------------------------------------------------
@@ -69,7 +74,19 @@
         // HelmRelease Test skips them (skipList in ci/.config.yaml), so a green check means untested
         "description": ["tailscale and cloudflared can't be tested in CI: manual merge for any update"],
         "matchPackageNames": ["/tailscale/", "/cloudflared/"],
-        "automerge": false
+        "automerge": false,
+        "addLabels": ["needs-manual-merge"]
+      },
+      {
+        // All 9 databases back up through spec.backup.barmanObjectStore (set by the TrueCharts cnpg
+        // template), which CloudNativePG removes in 1.31. Migrate to the Barman Cloud Plugin first.
+        "description": ["CloudNativePG operator: manual merge for any update, with a backup warning"],
+        "matchPackageNames": ["/cloudnative-pg/"],
+        "automerge": false,
+        "addLabels": ["needs-manual-merge", "cnpg-backup-warning"],
+        "prBodyNotes": [
+          "⚠️ **CloudNativePG 1.31 removes the built-in Barman Cloud backups** (`spec.backup.barmanObjectStore`), which all CNPG databases in this cluster use for their nightly S3 backups and restores. Before merging an update that brings the operator to 1.31 or later, move the clusters to the Barman Cloud Plugin, or the database backups stop."
+        ]
       },
       {
         "description": ["Block automerge for Authentik"],
@@ -77,7 +94,7 @@
         "automerge": false,
         "dependencyDashboardApproval": true,
         "matchPackageNames": ["oci.trueforge.org/truecharts/authentik"],
-        "labels": ["type/minor","type/major","type/patch"],
+        "labels": ["type/minor","type/major","type/patch","needs-manual-merge"],
         "addLabels": null
       },
       {
@@ -86,7 +103,7 @@
         "automerge": false,
         "dependencyDashboardApproval": true,
         "matchPackageNames": ["oci.trueforge.org/truecharts/nextcloud"],
-        "labels": ["type/minor","type/major","type/patch"],
+        "labels": ["type/minor","type/major","type/patch","needs-manual-merge"],
         "addLabels": null
       },
       // ---------------------------------------------------------------------------------------------
@@ -100,7 +117,7 @@
         "description": ["Talos and Kubernetes: never auto-merge any update (manual merge only)"],
         "matchPackageNames": ["/siderolabs/", "/k3s-io/"],
         "automerge": false,
-        "addLabels": ["system-upgrade"]
+        "addLabels": ["system-upgrade", "needs-manual-merge"]
       },
       {
         "description": ["Talos and Kubernetes major updates also need approval on the Renovate dashboard"],
