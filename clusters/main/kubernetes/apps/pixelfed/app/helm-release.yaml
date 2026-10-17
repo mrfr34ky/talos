@@ -90,6 +90,8 @@ spec:
           # Accounts are created by the admin only (php artisan user:create)
           OPEN_REGISTRATION: "false"
           ENFORCE_EMAIL_VERIFICATION: "true"
+          # Instagram import without the default 1-day account age
+          PF_IMPORT_IG_PERM_MIN_ACCOUNT_AGE: "0"
           # Shown publicly on the instance's About page and in its API
           INSTANCE_CONTACT_EMAIL: ${GMAIL_USER}
           # Mastodon-compatible API with personal access tokens (mobile apps, the Memories poster)
