@@ -79,6 +79,9 @@ spec:
         enabled: true
         user: seerr
         database: seerr
+        # Unset, it stays at the chart's public PLACEHOLDER default. CNPG only uses it when it
+        # creates the database: changing it later also needs ALTER ROLE in Postgres.
+        password: ${SEERR_CNPG_PWD}
         #mode: recovery
         cluster:
           singleNode: true

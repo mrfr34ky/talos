@@ -114,6 +114,9 @@ spec:
         enabled: true
         user: tracearr
         database: tracearr
+        # Unset, it stays at the chart's public PLACEHOLDER default. CNPG only uses it when it
+        # creates the database: changing it later also needs ALTER ROLE in Postgres.
+        password: ${TRACEARR_CNPG_PWD}
         #mode: recovery
         cluster:
           singleNode: true
@@ -138,3 +141,6 @@ spec:
 
     redis:
       enabled: true
+      # The chart doesn't generate it: unset, it stays at its public PLACEHOLDER default.
+      # Letters and digits only (it ends up in REDIS_URL).
+      password: ${TRACEARR_REDIS_PWD}
