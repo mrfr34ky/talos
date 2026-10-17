@@ -69,4 +69,36 @@ spec:
               trigger:
                 schedule: 41 1 * * *
     auth:
-      enabled: true                     
+      enabled: true
+    # The chart creates a websockets Service by default, but the broker only listens there with
+    # websockets.enabled: true. Nothing uses websockets (HA and Frigate use 1883), so drop the Service.
+    service:
+      websockets:
+        enabled: false
+    # Probe by checking that 1883 is in LISTEN state (075B = 1883, 0A = LISTEN) instead of opening a
+    # TCP connection: the chart's tcp probes made Mosquitto log "New connection ... closed its
+    # connection" about every 7 s.
+    workload:
+      main:
+        podSpec:
+          containers:
+            main:
+              probes:
+                liveness:
+                  type: exec
+                  command:
+                    - /bin/sh
+                    - -c
+                    - "grep -qE '^ *[0-9]+: [0-9A-F]+:075B [0-9A-F]+:0000 0A ' /proc/net/tcp /proc/net/tcp6"
+                readiness:
+                  type: exec
+                  command:
+                    - /bin/sh
+                    - -c
+                    - "grep -qE '^ *[0-9]+: [0-9A-F]+:075B [0-9A-F]+:0000 0A ' /proc/net/tcp /proc/net/tcp6"
+                startup:
+                  type: exec
+                  command:
+                    - /bin/sh
+                    - -c
+                    - "grep -qE '^ *[0-9]+: [0-9A-F]+:075B [0-9A-F]+:0000 0A ' /proc/net/tcp /proc/net/tcp6"
