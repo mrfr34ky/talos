@@ -15,7 +15,7 @@ resources:
   - ext-prox/ks.yaml
   - ext-slzb/ks.yaml
   - ext-printer/ks.yaml
-  - pgadmin/ks.yaml
+  #- pgadmin/ks.yaml
   - prowlarr/ks.yaml
   - radarr/ks.yaml
   - sonarr/ks.yaml
