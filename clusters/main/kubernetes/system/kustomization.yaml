@@ -10,4 +10,5 @@ resources:
   - openebs/ks.yaml
   - snapshot-controller/ks.yaml
   - volsync/ks.yaml
-  #- generic-device-plugin/ks.yaml
+  # Exposes /dev/net/tun as truecharts.org/tun for gluetun VPN sidecars
+  - generic-device-plugin/ks.yaml
