@@ -1,0 +1,115 @@
+---
+# Reachable through traefik-external and Homarr's status check. Can reach its database, DNS,
+# Plex, Radarr, Sonarr and the public internet (TMDB, plex.tv), not the LAN or other apps.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: seerr
+  namespace: seerr
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: seerr
+      app.kubernetes.io/name: seerr
+      pod.name: main
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-external
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: homarr
+      ports:
+        - protocol: TCP
+          port: 10241
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: seerr-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: plex
+      ports:
+        - protocol: TCP
+          port: 32400
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: radarr
+      ports:
+        - protocol: TCP
+          port: 7878
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: sonarr
+      ports:
+        - protocol: TCP
+          port: 8989
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Public internet only
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+---
+# Postgres only accepts Seerr, its own instances and the CNPG operator
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: seerr-cnpg
+  namespace: seerr
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: seerr-cnpg-main
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: seerr
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: seerr-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cloudnative-pg
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudnative-pg
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 5432
