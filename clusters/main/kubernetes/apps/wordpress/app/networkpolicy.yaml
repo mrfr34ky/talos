@@ -1,0 +1,79 @@
+---
+# If WordPress is compromised it can still reach the internet (updates, plugins, Gmail SMTP),
+# but not the LAN, the cluster or other apps.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: wordpress
+  namespace: wordpress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: wordpress
+      app.kubernetes.io/name: wordpress
+      pod.name: main
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-external
+      ports:
+        - protocol: TCP
+          port: 10591
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: wordpress
+              app.kubernetes.io/name: mariadb
+      ports:
+        - protocol: TCP
+          port: 3306
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Public internet only
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+---
+# The database only accepts WordPress itself
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: wordpress-mariadb
+  namespace: wordpress
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: wordpress
+      app.kubernetes.io/name: mariadb
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: wordpress
+              app.kubernetes.io/name: wordpress
+      ports:
+        - protocol: TCP
+          port: 3306
