@@ -8,11 +8,13 @@
 # Two companions, also commented out (each is safe to uncomment on its own):
 #   4. deployment.initContainers          (wait for DNS before the plugin download)
 #   5. accessLog.fields                   (keep User-Agent for CrowdSec's bad-user-agent scenarios)
+# Also commented out, because a fresh cluster has no Prometheus Operator CRDs yet (the Traefik chart
+# refuses to render a ServiceMonitor without them); safe to uncomment once kube-prometheus-stack runs:
+#   6. metrics.prometheus.serviceMonitor
 #
 # Used as the bootstrap copy: clusters/<name>/kubernetes/networking/nginx-external/app/
 # (hidden from Flux by .sourceignore; the real traefik-external release takes over).
 # =====================================================================================
----
 # yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -32,6 +34,8 @@ spec:
       interval: 15m
   timeout: 20m
   maxHistory: 3
+  driftDetection:
+    mode: warn
   install:
     createNamespace: true
     crds: CreateReplace
@@ -44,6 +48,30 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  # gatus-sidecar (observability/gatus) uses this IngressClass annotation as the default for every
+  # "external" Ingress. The chart can't annotate its IngressClass, so patch the rendered object.
+  # Normal (public) DNS, so these checks go through Cloudflare and the tunnel like real visitors.
+  # The status page is public: hide hostnames, URLs and errors (errors can name other hosts).
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: IngressClass
+              name: external
+            patch: |
+              apiVersion: networking.k8s.io/v1
+              kind: IngressClass
+              metadata:
+                name: external
+                annotations:
+                  gatus.home-operations.com/endpoint: |
+                    group: Public
+                    ui:
+                      hide-hostname: true
+                      hide-url: true
+                      hide-errors: true
+                    alerts:
+                      - type: discord
   values:
     deployment:
       replicas: 2
@@ -52,7 +80,7 @@ spec:
       # # fails) until the pod is restarted. Wait for DNS first.
       # initContainers:
         # - name: wait-for-dns
-          # image: docker.io/library/busybox:1.37.0
+          # image: docker.io/library/busybox:1.38.0
           # command:
             # - sh
             # - -c
@@ -128,8 +156,9 @@ spec:
 
 
     # Dashboard at https://traefik-external.${DOMAIN_0}/dashboard/ (trailing slash required).
-    # This instance is port-forwarded from the WAN, so the LAN-only allowlist is what
-    # keeps the dashboard private: internet clients get a 403.
+    # Public traffic reaches this instance through the Cloudflare Tunnel (cloudflared -> this
+    # Service). The LAN-only allowlist keeps the dashboard private: tunnel requests come from the
+    # cloudflared pod's cluster address, outside 192.168.1.0/24, and get a 403.
     ingressRoute:
       dashboard:
         enabled: true
@@ -169,6 +198,14 @@ spec:
               # clientTrustedIPs:
                 # - 192.168.1.0/24
 
+    # Prometheus metrics (entrypoint "metrics", port 9100) on their own in-cluster Service,
+    # scraped through a ServiceMonitor for the Traefik dashboard in Grafana
+    metrics:
+      prometheus:
+        service:
+          enabled: true
+        # serviceMonitor:
+          # enabled: true
     service:
       annotations:
         metallb.io/ip-allocated-from-pool: main
