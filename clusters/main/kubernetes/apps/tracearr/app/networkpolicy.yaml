@@ -56,3 +56,29 @@ spec:
       ports:
         - protocol: TCP
           port: 6379
+---
+# Incoming only from traefik-internal, Homarr: closes the direct, Authentik-free path from other pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tracearr-ingress
+  namespace: tracearr
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: tracearr
+      app.kubernetes.io/name: app-template
+      pod.name: main
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-internal
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: homarr
+      ports:
+        - protocol: TCP
+          port: 3000

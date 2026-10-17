@@ -37,3 +37,29 @@ spec:
               - 192.168.0.0/16
               - 100.64.0.0/10
               - 169.254.0.0/16
+---
+# Incoming only from traefik-internal, Homarr: closes the direct, Authentik-free path from other pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deemix2-ingress
+  namespace: deemix2
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: deemix2
+      app.kubernetes.io/name: deemix
+      pod.name: main
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-internal
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: homarr
+      ports:
+        - protocol: TCP
+          port: 6595
