@@ -1,0 +1,25 @@
+---
+# The dashboard's pods (front, Kong, API, auth, web, scraper) talk freely to each other; from outside
+# only traefik-internal and Homarr reach the front: closes the direct path from other pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kubernetes-dashboard-ingress
+  namespace: kubernetes-dashboard
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-internal
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: homarr
+      ports:
+        - protocol: TCP
+          port: 3000
