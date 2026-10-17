@@ -81,3 +81,8 @@ spec:
     cnpg:
       main:
         enabled: false
+
+    redis:
+      # The chart doesn't generate it: unset, it stays at its public PLACEHOLDER default.
+      # Letters and digits only.
+      password: ${BLOCKY_REDIS_PWD}

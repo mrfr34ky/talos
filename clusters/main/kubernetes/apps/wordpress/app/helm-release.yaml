@@ -31,8 +31,7 @@ spec:
   uninstall:
     keepHistory: false
   # Public website on the second domain's apex (no subdomain), through the Cloudflare Tunnel and
-  # traefik-external, so CrowdSec covers it. Bitnami WordPress image; the chart's MariaDB generates
-  # its own password.
+  # traefik-external, so CrowdSec covers it. Bitnami WordPress image.
   values:
     global:
       stopAll: false
@@ -63,6 +62,15 @@ spec:
       PHP_UPLOAD_MAX_FILESIZE: 128M
       PHP_POST_MAX_SIZE: 128M
       PHP_MAX_EXECUTION_TIME: "300"
+    workload:
+      main:
+        podSpec:
+          containers:
+            main:
+              env:
+                # wp-config.php keeps the database password it was installed with. This makes the
+                # image rewrite the database settings from the chart's values on every start.
+                WORDPRESS_OVERRIDE_DATABASE_SETTINGS: "yes"
     persistence:
       # wp-content (themes, plugins, uploads) and wp-config.php
       config:
@@ -78,6 +86,10 @@ spec:
                 # Free slot after Plex at the end of the nightly chain (UTC, 7 minutes apart)
                 schedule: 52 4 * * *
     mariadb:
+      # The chart doesn't generate these: unset, they stay at its public PLACEHOLDER defaults.
+      # MariaDB re-applies them on every start (--init-file). Letters and digits only.
+      password: ${WORDPRESS_MARIADB_PWD}
+      rootPassword: ${WORDPRESS_MARIADB_ROOT_PWD}
       # The sub-chart doesn't see the parent's credentials, so it gets its own copy
       credentials:
         s3:

@@ -93,6 +93,10 @@ spec:
           method: object_store
           credentials: s3
           revision: "5"
+    redis:
+      # The chart doesn't generate it: unset, it stays at its public PLACEHOLDER default.
+      # Letters and digits only (it ends up in PAPERLESS_REDIS).
+      password: ${PAPERLESS_REDIS_PWD}
     workload:
       main:
         podSpec:
