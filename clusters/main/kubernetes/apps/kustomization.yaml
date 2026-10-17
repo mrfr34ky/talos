@@ -25,7 +25,7 @@ resources:
   - deemix/ks.yaml
   - deemix2/ks.yaml
   #- jdownloader2/ks.yaml
-  - krusader/ks.yaml
+  #- krusader/ks.yaml
   #- filezilla/ks.yaml
   - syncthing/ks.yaml
   - profilarr/ks.yaml
