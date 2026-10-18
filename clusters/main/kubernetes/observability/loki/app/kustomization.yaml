@@ -6,3 +6,4 @@ resources:
   - helm-release.yaml
   - grafana-datasource.yaml
   - logs-dashboard.yaml
+  - networkpolicy.yaml
