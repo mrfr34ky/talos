@@ -218,9 +218,18 @@ spec:
                     name: env
                 - secretRef:
                     name: env
+              # Image jobs hold ImageMagick memory outside PHP's limit: fewer workers, more room (OOMs at 2.4Gi)
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 200Mi
+                limits:
+                  cpu: 1500m
+                  memory: 4Gi
               env:
                 DOCKER_SERVICE_NAME: worker
                 ENTRYPOINT_SKIP_SCRIPTS: "01-permissions.sh 02-check-config.sh 11-first-time-setup.sh 12-migrations.sh"
+                HORIZON_MAX_PROCESSES: "3"
                 DB_PASSWORD:
                   secretKeyRef:
                     expandObjectName: false
