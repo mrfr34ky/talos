@@ -49,5 +49,5 @@ resources:
   - seerr/ks.yaml
   #####################MARIADB######################
   - wordpress/ks.yaml
-  - pixelfed/ks.yaml
+  #- pixelfed/ks.yaml  # disabled 2026-10-18; re-enabling restores the DB from the VolSync B2 backup
   
