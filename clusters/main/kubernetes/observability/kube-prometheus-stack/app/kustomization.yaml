@@ -11,3 +11,4 @@ resources:
   - prometheusrule-proxmox.yaml
   - podmonitor-flux.yaml
   - temperatures-dashboard.yaml
+  - networkpolicy.yaml
