@@ -92,6 +92,11 @@ spec:
           ENFORCE_EMAIL_VERIFICATION: "true"
           # Instagram import without the default 1-day account age
           PF_IMPORT_IG_PERM_MIN_ACCOUNT_AGE: "0"
+          # Largest file in KB (uploads and the Instagram import, videos included); stays under
+          # Cloudflare's 100 MB request limit; default 15000
+          PF_MAX_PHOTO_SIZE: "95000"
+          # PHP request limit; the import sends up to 10 files per request (Apache allows 1 GiB)
+          POST_MAX_SIZE: "1000M"
           # Shown publicly on the instance's About page and in its API
           INSTANCE_CONTACT_EMAIL: ${GMAIL_USER}
           # Mastodon-compatible API with personal access tokens (mobile apps, the Memories poster)
