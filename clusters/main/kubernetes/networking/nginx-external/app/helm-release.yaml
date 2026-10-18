@@ -162,7 +162,8 @@ spec:
     ingressRoute:
       dashboard:
         enabled: true
-        matchRule: Host(`traefik-external.${DOMAIN_0}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))
+        # /outpost.goauthentik.io: Authentik login callback (handled by the authentik middleware)
+        matchRule: Host(`traefik-external.${DOMAIN_0}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`) || PathPrefix(`/outpost.goauthentik.io`))
         entryPoints: ["websecure"]
         middlewares:
           - name: lan-only
