@@ -99,6 +99,10 @@ spec:
           POST_MAX_SIZE: "1000M"
           # Public (landing page, instance API); never empty: the image's Apache config uses it as ServerAdmin
           INSTANCE_CONTACT_EMAIL: ${PIXELFED_CONTACT_EMAIL}
+          # Visitors can browse the timeline, Discover and hashtag pages without logging in (env only)
+          INSTANCE_PUBLIC_LOCAL_TIMELINE: "true"
+          INSTANCE_DISCOVER_PUBLIC: "true"
+          INSTANCE_PUBLIC_HASHTAGS: "true"
           # Mastodon-compatible API with personal access tokens (mobile apps, the Memories poster)
           OAUTH_ENABLED: "true"
           ACTIVITY_PUB: "true"
