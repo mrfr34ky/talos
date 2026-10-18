@@ -4,4 +4,5 @@ kind: Kustomization
 resources:
   - helm-release.yaml
   - exporter.yaml
+  - middleware.yaml
   - namespace.yaml
