@@ -114,6 +114,8 @@ spec:
         entryPoints: ["websecure"]
         middlewares:
           - name: lan-only
+          # The API shows every middleware config, incl. the CrowdSec bouncer key
+          - name: authentik
     extraObjects:
       - apiVersion: traefik.io/v1alpha1
         kind: Middleware
