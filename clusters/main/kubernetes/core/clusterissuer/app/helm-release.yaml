@@ -52,6 +52,17 @@ spec:
           type: "cloudflare"
           # for cloudflare
           cfapitoken: "${DOMAIN_0_CLOUDFLARE_TOKEN}"
+        # Pixelfed's domain: same setup, with its own Cloudflare token (DNS edit on that zone only)
+        - name: domain-1-le-staging
+          email: "${DOMAIN_1_EMAIL}"
+          server: 'https://acme-staging-v02.api.letsencrypt.org/directory'
+          type: "cloudflare"
+          cfapitoken: "${DOMAIN_1_CLOUDFLARE_TOKEN}"
+        - name: domain-1-le-prod
+          email: "${DOMAIN_1_EMAIL}"
+          server: 'https://acme-v02.api.letsencrypt.org/directory'
+          type: "cloudflare"
+          cfapitoken: "${DOMAIN_1_CLOUDFLARE_TOKEN}"
         # Second domain: same setup, with its own Cloudflare token (DNS edit on that zone only)
         - name: domain-2-le-staging
           email: "${DOMAIN_2_EMAIL}"
@@ -76,6 +87,12 @@ spec:
           hosts:
             - ${DOMAIN_0}
             - '*.${DOMAIN_0}'
+        - name: domain-1-wildcard
+          enabled: true
+          certificateIssuer: domain-1-le-prod
+          hosts:
+            - ${DOMAIN_1}
+            - '*.${DOMAIN_1}'
         - name: domain-2-wildcard
           enabled: true
           certificateIssuer: domain-2-le-prod

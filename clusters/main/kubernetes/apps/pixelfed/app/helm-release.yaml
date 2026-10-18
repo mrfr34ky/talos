@@ -79,10 +79,10 @@ spec:
           APP_NAME: Memories
           APP_ENV: production
           APP_DEBUG: "false"
-          APP_URL: https://memories.${DOMAIN_0}
-          APP_DOMAIN: memories.${DOMAIN_0}
-          ADMIN_DOMAIN: memories.${DOMAIN_0}
-          SESSION_DOMAIN: memories.${DOMAIN_0}
+          APP_URL: https://memories.${DOMAIN_1}
+          APP_DOMAIN: memories.${DOMAIN_1}
+          ADMIN_DOMAIN: memories.${DOMAIN_1}
+          SESSION_DOMAIN: memories.${DOMAIN_1}
           # Pixelfed expects UTC internally; TZ (Europe/Brussels) still sets the container clock
           APP_TIMEZONE: UTC
           # Requests come through cloudflared and Traefik
@@ -235,19 +235,19 @@ spec:
                   type: http
                   path: /api/service/health-check
                   httpHeaders:
-                    Host: memories.${DOMAIN_0}
+                    Host: memories.${DOMAIN_1}
                 readiness:
                   enabled: true
                   type: http
                   path: /api/service/health-check
                   httpHeaders:
-                    Host: memories.${DOMAIN_0}
+                    Host: memories.${DOMAIN_1}
                 startup:
                   enabled: true
                   type: http
                   path: /api/service/health-check
                   httpHeaders:
-                    Host: memories.${DOMAIN_0}
+                    Host: memories.${DOMAIN_1}
                   spec:
                     # The first start migrates the database and imports the city list
                     initialDelaySeconds: 10
@@ -442,8 +442,9 @@ spec:
     ingress:
       main:
         enabled: true
-        # LAN-only until the instance is ready to federate
-        ingressClassName: internal
+        # Public through the Cloudflare tunnel (traefik-external + CrowdSec); LAN clients reach the same
+        # ingress directly via Blocky's k8s_gateway
+        ingressClassName: external
         integrations:
           traefik:
             enabled: true
@@ -451,11 +452,11 @@ spec:
               - name: secure-headers
           certManager:
             enabled: true
-            certificateIssuer: domain-0-le-prod
+            certificateIssuer: domain-1-le-prod
           nginx:
             enabled: false
         hosts:
-          - host: memories.${DOMAIN_0}
+          - host: memories.${DOMAIN_1}
             paths:
               - path: /
                 pathType: Prefix

@@ -12,6 +12,9 @@ dummyEnv:
   DOMAIN_0: dummy.local
   DOMAIN_0_EMAIL: ci@dummy.local
   DOMAIN_0_CLOUDFLARE_TOKEN: dummy-cloudflare-token
+  DOMAIN_1: dummy1.local
+  DOMAIN_1_EMAIL: ci@dummy1.local
+  DOMAIN_1_CLOUDFLARE_TOKEN: dummy-cloudflare-token-1
   DOMAIN_2: dummy2.local
   DOMAIN_2_EMAIL: ci@dummy2.local
   DOMAIN_2_CLOUDFLARE_TOKEN: dummy-cloudflare-token-2
