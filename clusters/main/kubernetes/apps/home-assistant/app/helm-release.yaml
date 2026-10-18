@@ -75,7 +75,8 @@ spec:
           credentials: s3
           scheduledBackups:
             - name: daily-backup
-              schedule: "0 52 0 * * *"
+              # Last in the nightly chain: takes 5-9 min (~7 GB DB), more than the usual 7-min gap
+              schedule: "0 26 5 * * *"
               backupOwnerReference: self
               immediate: true
               suspend: false
