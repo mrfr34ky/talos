@@ -9,6 +9,7 @@ resources:
   - scrapeconfig.yaml
   - prometheusrule-truenas.yaml
   - prometheusrule-proxmox.yaml
+  - prometheusrule-gluetun.yaml
   - podmonitor-flux.yaml
   - temperatures-dashboard.yaml
   - networkpolicy.yaml

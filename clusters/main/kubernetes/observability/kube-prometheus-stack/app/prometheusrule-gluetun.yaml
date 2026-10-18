@@ -1,0 +1,33 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+# VPN sidecars (gluetun add-on): a liveness probe restarts gluetun after ~5 min of failed health checks,
+# so a restart means the tunnel was down; warning/critical go to Discord (alertmanagerconfig.yaml).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: gluetun
+  namespace: kube-prometheus-stack
+spec:
+  groups:
+    - name: gluetun
+      rules:
+        - alert: GluetunRestarted
+          expr: increase(kube_pod_container_status_restarts_total{container=~".*gluetun.*"}[15m]) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: VPN sidecar restarted in {{ $labels.namespace }}
+            description: >-
+              {{ $labels.container }} in {{ $labels.pod }} was restarted: the VPN tunnel failed its health check
+              for about 5 minutes, or gluetun crashed. Outgoing traffic of that pod was blocked meanwhile.
+
+        - alert: GluetunNotRunning
+          expr: kube_pod_container_status_running{container=~".*gluetun.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: VPN sidecar down in {{ $labels.namespace }}
+            description: >-
+              {{ $labels.container }} in {{ $labels.pod }} has not been running for 5 minutes, so the pod has no
+              outgoing connectivity (gluetun's kill switch).
