@@ -96,6 +96,9 @@ spec:
               - name: authentik
                 namespace: traefik-internal
                 expandObjectName: false
+              - name: strip-sec-fetch-site
+                namespace: pihole
+                expandObjectName: false
             certManager:
               enabled: true
               certificateIssuer: domain-0-le-prod
