@@ -6,6 +6,8 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: domain-0-le-prod
     cert-manager.io/private-key-rotation-policy: Always
+    # The Longhorn UI has no login of its own
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-internal-authentik@kubernetescrd
 spec:
   ingressClassName: internal
   rules:
