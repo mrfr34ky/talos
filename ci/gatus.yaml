@@ -1,0 +1,9 @@
+---
+# CI-only values for the gatus chart (merged after the HelmRelease values by deploy_helmrelease.sh).
+# The Discord webhook Secret comes from SOPS and doesn't exist in CI, so drop the envFrom.
+workload:
+  main:
+    podSpec:
+      containers:
+        main:
+          envFrom: []
