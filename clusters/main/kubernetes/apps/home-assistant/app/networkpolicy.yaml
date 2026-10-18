@@ -35,7 +35,7 @@ spec:
         - protocol: TCP
           port: 5432
 ---
-# Incoming only from traefik-internal (app and code-server) and Homarr
+# Incoming only from traefik-internal (app and code-server), Homarr and Prometheus (HA metrics)
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -57,6 +57,16 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: homarr
+      ports:
+        - protocol: TCP
+          port: 8123
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-prometheus-stack
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
       ports:
         - protocol: TCP
           port: 8123
