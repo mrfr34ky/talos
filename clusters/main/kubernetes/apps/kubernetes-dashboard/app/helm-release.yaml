@@ -40,6 +40,11 @@ spec:
           integrations:
             traefik:
               enabled: true
+              # kube-sa-proxy logs every visitor in with the cluster-admin service account: keep it behind Authentik
+              middlewares:
+              - name: authentik
+                namespace: traefik-internal
+                expandObjectName: false
             certManager:
               enabled: true
               certificateIssuer: domain-0-le-prod
