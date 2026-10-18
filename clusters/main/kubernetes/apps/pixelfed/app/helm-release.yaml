@@ -472,6 +472,9 @@ spec:
             enabled: true
             middlewares:
               - name: secure-headers
+              - name: root-to-profile
+                namespace: pixelfed
+                expandObjectName: false
           certManager:
             enabled: true
             certificateIssuer: domain-1-le-prod
