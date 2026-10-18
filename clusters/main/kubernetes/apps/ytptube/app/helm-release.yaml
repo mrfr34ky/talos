@@ -49,7 +49,15 @@ spec:
       main:
         ports:
           main:
-            port: 8081 
+            port: 8081
+    workload:
+      main:
+        podSpec:
+          containers:
+            main:
+              env:
+                # Authentik (ingress middleware) is the only login
+                YTP_DISABLE_AUTH: "true"
     credentials:
       s3:
         type: s3
@@ -90,6 +98,10 @@ spec:
           integrations:
             traefik:
               enabled: true
+              middlewares:
+              - name: authentik
+                namespace: traefik-internal
+                expandObjectName: false
             certManager:
               enabled: true
               certificateIssuer: domain-0-le-prod
