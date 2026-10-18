@@ -138,6 +138,59 @@ spec:
         data:
           .env: |
             # Settings come from the environment (HelmRelease values), not from this file.
+      # Pixelfed's sw.js, but form posts and /oauth/ go straight to the browser: the stock worker turns
+      # the app login's redirect to pixelfed://oauth-callback into its "You are offline" page
+      serviceworker:
+        enabled: true
+        data:
+          sw.js: |
+            const OFFLINE_VERSION = 2;
+            const CACHE_NAME = "offline";
+            const OFFLINE_URL = "/offline.html";
+
+            self.addEventListener("install", (event) => {
+            	event.waitUntil(
+            		(async () => {
+            			const cache = await caches.open(CACHE_NAME);
+            			await cache.add(new Request(OFFLINE_URL, { cache: "reload" }));
+            		})()
+            	);
+            	self.skipWaiting();
+            });
+
+            self.addEventListener("activate", (event) => {
+            	event.waitUntil(
+            		(async () => {
+            			if ("navigationPreload" in self.registration) {
+            				await self.registration.navigationPreload.enable();
+            			}
+            		})()
+            	);
+            	self.clients.claim();
+            });
+
+            self.addEventListener("fetch", (event) => {
+            	const url = new URL(event.request.url);
+            	if (event.request.mode !== "navigate" || event.request.method !== "GET" || url.pathname.startsWith("/oauth/")) {
+            		return;
+            	}
+            	event.respondWith(
+            		(async () => {
+            			try {
+            				const preloadResponse = await event.preloadResponse;
+            				if (preloadResponse) {
+            					return preloadResponse;
+            				}
+            				const networkResponse = await fetch(event.request);
+            				return networkResponse;
+            			} catch (error) {
+            				const cache = await caches.open(CACHE_NAME);
+            				const cachedResponse = await cache.match(OFFLINE_URL);
+            				return cachedResponse;
+            			}
+            		})()
+            	);
+            });
     secret:
       env:
         enabled: true
@@ -298,6 +351,14 @@ spec:
         objectName: dotenv
         mountPath: /var/www/.env
         subPath: .env
+        readOnly: true
+        targetSelectAll: true
+      serviceworker:
+        enabled: true
+        type: configmap
+        objectName: serviceworker
+        mountPath: /var/www/public/sw.js
+        subPath: sw.js
         readOnly: true
         targetSelectAll: true
     mariadb:
