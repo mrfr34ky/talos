@@ -413,6 +413,24 @@ spec:
             excludeExtra: false
             limits:
               truecharts.org/tun: 1
+          # Restart gluetun after ~5 min of failed tunnel health checks (it self-heals before that);
+          # no readiness probe, an unready sidecar would take the whole pod (and the website) out
+          probes:
+            liveness:
+              enabled: true
+              type: exec
+              command:
+                - /gluetun-entrypoint
+                - healthcheck
+              spec:
+                initialDelaySeconds: 120
+                periodSeconds: 60
+                timeoutSeconds: 10
+                failureThreshold: 5
+            readiness:
+              enabled: false
+            startup:
+              enabled: false
           envFrom:
             - secretRef:
                 name: vpn
