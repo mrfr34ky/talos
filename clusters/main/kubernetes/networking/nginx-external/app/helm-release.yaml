@@ -166,6 +166,8 @@ spec:
         entryPoints: ["websecure"]
         middlewares:
           - name: lan-only
+          # The API shows every middleware config, incl. the CrowdSec bouncer key
+          - name: authentik
     extraObjects:
       - apiVersion: traefik.io/v1alpha1
         kind: Middleware
@@ -176,6 +178,17 @@ spec:
           ipAllowList:
             sourceRange:
               - 192.168.1.0/24   # LAN clients; add VPN/other VLAN ranges here if needed
+      # Authentik forward-auth for the dashboard (own copy: an IngressRoute can't use
+      # traefik-internal's without allowCrossNamespace)
+      - apiVersion: traefik.io/v1alpha1
+        kind: Middleware
+        metadata:
+          name: authentik
+          namespace: traefik-external
+        spec:
+          forwardAuth:
+            address: http://authentik-http.authentik.svc.cluster.local:10230/outpost.goauthentik.io/auth/traefik
+            trustForwardHeader: true
       # # CrowdSec bouncer (Traefik plugin). Fetches decisions from the CrowdSec LAPI.
       # - apiVersion: traefik.io/v1alpha1
         # kind: Middleware
