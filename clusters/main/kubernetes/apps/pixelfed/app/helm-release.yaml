@@ -52,7 +52,7 @@ spec:
     image:
       repository: ghcr.io/jippi/docker-pixelfed
       pullPolicy: IfNotPresent
-      tag: v0.15.0-apache-8.4-bookworm@sha256:0b1d1f6fd867ad626fc04e34b7e5b9d2d87e83cab6e2f9d6c168a74f1a03dd07
+      tag: v0.15.1-apache-8.4-bookworm@sha256:3c463509640fe810c3f6b2b57d7c1b37f2ccfb729fbb1c07e66da6a18d7669d4
     # The entrypoint starts as root and drops to www-data (uid 33) through su/gosu; Apache binds
     # port 80 as root. The chart adds CHOWN/SETUID/SETGID/FOWNER/DAC_OVERRIDE and NET_BIND_SERVICE.
     securityContext:
