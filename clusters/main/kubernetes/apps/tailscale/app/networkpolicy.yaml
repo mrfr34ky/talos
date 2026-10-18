@@ -1,0 +1,110 @@
+---
+# Nothing may connect in. Out: the LAN (subnet router), the internet (exit node, DERP, peers),
+# DNS and the LoadBalancer services, which Cilium resolves to their pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tailscale
+  namespace: tailscale
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: tailscale
+      app.kubernetes.io/name: tailscale
+      pod.name: main
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.168.1.0/24
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-internal
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-external
+      ports:
+        - protocol: TCP
+          port: 8443
+        - protocol: TCP
+          port: 8000
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: pihole
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: blocky
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: plex
+      ports:
+        - protocol: TCP
+          port: 32400
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: frigate
+      ports:
+        - protocol: TCP
+          port: 8555
+        - protocol: UDP
+          port: 8555
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Public internet only
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+---
+# The node itself (ipBlock doesn't match it): kube API for the state Secret and kubectl,
+# Talos API for talosctl over Tailscale
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: tailscale-node
+  namespace: tailscale
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: tailscale
+      app.kubernetes.io/name: tailscale
+      pod.name: main
+  egress:
+    - toEntities:
+        - kube-apiserver
+      toPorts:
+        - ports:
+            - port: "6443"
+              protocol: TCP
+    - toEntities:
+        - host
+      toPorts:
+        - ports:
+            - port: "50000"
+              protocol: TCP
