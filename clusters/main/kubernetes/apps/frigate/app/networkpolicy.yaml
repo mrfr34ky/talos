@@ -45,3 +45,51 @@ spec:
           port: 8555
         - protocol: UDP
           port: 8555
+---
+# Out only to the LAN (cameras, WebRTC viewers), Mosquitto, DNS and the public internet (STUN, update check)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frigate-egress
+  namespace: frigate
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: frigate
+      app.kubernetes.io/name: frigate
+      pod.name: main
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.168.1.0/24
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: mosquitto
+      ports:
+        - protocol: TCP
+          port: 1883
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Public internet only
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
