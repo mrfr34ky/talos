@@ -1,0 +1,51 @@
+---
+# Incoming only from known clients: other pods could send forged X-Forwarded-For,
+# which this instance trusts from the pod network (CrowdSec, logs)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: traefik-external-ingress
+  namespace: traefik-external
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: traefik-external-traefik-external
+      app.kubernetes.io/name: traefik
+  policyTypes:
+    - Ingress
+  ingress:
+    # Tunnel, Tailscale subnet router, Homarr/Gatus checks, Nextcloud + Collabora (hostAliases)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: cloudflared
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: tailscale
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: homarr
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: gatus
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: nextcloud
+        # LAN clients via the MetalLB IP (externalTrafficPolicy Local keeps their address)
+        - ipBlock:
+            cidr: 192.168.1.0/24
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 8443
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-prometheus-stack
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9100
