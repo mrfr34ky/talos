@@ -97,8 +97,8 @@ spec:
           MAX_PHOTO_SIZE: "95000"
           # PHP request limit; the import sends up to 10 files per request (Apache allows 1 GiB)
           POST_MAX_SIZE: "1000M"
-          # Empty: no public contact e-mail on the landing page or in the instance API
-          INSTANCE_CONTACT_EMAIL: ""
+          # Public (landing page, instance API); never empty: the image's Apache config uses it as ServerAdmin
+          INSTANCE_CONTACT_EMAIL: ${PIXELFED_CONTACT_EMAIL}
           # Mastodon-compatible API with personal access tokens (mobile apps, the Memories poster)
           OAUTH_ENABLED: "true"
           ACTIVITY_PUB: "true"
