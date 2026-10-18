@@ -32,8 +32,9 @@ spec:
           env:
             - name: PIHOLE_PROTOCOL
               value: http
+            # Service IP: Pi-hole without a password refuses other hostnames
             - name: PIHOLE_HOSTNAME
-              value: pihole.pihole.svc.cluster.local
+              value: "172.17.194.52"
             - name: PIHOLE_PORT
               value: "9089"
             - name: PORT

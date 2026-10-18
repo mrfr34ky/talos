@@ -82,7 +82,9 @@ spec:
             main:
               env:
                 FTLCONF_dns_upstreams: ${BLOCKY_IP}
-                FTLCONF_webserver_api_password: ''                           
+                FTLCONF_webserver_api_password: ''
+                # Without a password Pi-hole only answers this name, IPs and localhost (2026.10.0)
+                FTLCONF_webserver_domain: pihole.${DOMAIN_0}
     ingress:
         main:
           enabled: true
