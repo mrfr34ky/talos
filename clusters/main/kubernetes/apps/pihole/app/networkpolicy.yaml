@@ -1,0 +1,59 @@
+---
+# DNS stays open to everyone; the passwordless web UI only for traefik-internal (Authentik),
+# homarr and the exporter
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pihole-ingress
+  namespace: pihole
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: pihole
+      app.kubernetes.io/name: pihole
+      pod.name: main
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-internal
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: homarr
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: pihole-exporter
+      ports:
+        - protocol: TCP
+          port: 80
+---
+# Only Prometheus scrapes the exporter
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pihole-exporter-ingress
+  namespace: pihole
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: pihole-exporter
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-prometheus-stack
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9617
