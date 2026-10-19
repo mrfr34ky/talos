@@ -1,0 +1,225 @@
+---
+# Grafana "UPS (APC)" dashboard, picked up by Grafana's sidecar (label grafana_dashboard: "1").
+# Data: apcupsd on the Proxmox host via apcupsd-exporter (apcupsd-exporter.yaml).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ups-grafana-dashboard
+  namespace: kube-prometheus-stack
+  labels:
+    grafana_dashboard: "1"
+data:
+  ups.json: |
+    {
+      "title": "UPS (APC)",
+      "uid": "ups-apc",
+      "tags": ["ups", "proxmox", "power"],
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": true,
+      "timezone": "browser",
+      "time": { "from": "now-24h", "to": "now" },
+      "refresh": "1m",
+      "graphTooltip": 1,
+      "panels": [
+        {
+          "id": 1, "type": "stat", "title": "Power source",
+          "gridPos": { "h": 5, "w": 4, "x": 0, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "max(apcupsd_battery_time_on_seconds)", "instant": true } ],
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "background", "graphMode": "none", "textMode": "value", "justifyMode": "center" },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                { "type": "value", "options": { "0": { "text": "On mains", "color": "green" } } },
+                { "type": "range", "options": { "from": 0.001, "to": 1e12, "result": { "text": "ON BATTERY", "color": "red" } } }
+              ],
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 0.001 } ] }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 2, "type": "stat", "title": "apcupsd status",
+          "gridPos": { "h": 5, "w": 4, "x": 4, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_info", "instant": true, "legendFormat": "{{status}}" } ],
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "none", "textMode": "name", "justifyMode": "center" },
+          "fieldConfig": { "defaults": {}, "overrides": [] }
+        },
+        {
+          "id": 3, "type": "gauge", "title": "Battery charge",
+          "gridPos": { "h": 5, "w": 4, "x": 8, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_battery_charge_percent", "instant": true } ],
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdMarkers": true },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent", "min": 0, "max": 100, "decimals": 0,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 30 }, { "color": "green", "value": 60 } ] }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 4, "type": "stat", "title": "Runtime left",
+          "gridPos": { "h": 5, "w": 4, "x": 12, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_battery_time_left_seconds", "instant": true } ],
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value", "justifyMode": "center" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s", "decimals": 0,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 600 }, { "color": "green", "value": 1200 } ] }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 5, "type": "gauge", "title": "Load",
+          "gridPos": { "h": 5, "w": 4, "x": 16, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_ups_load_percent", "instant": true } ],
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showThresholdMarkers": true },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent", "min": 0, "max": 100, "decimals": 0,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 60 }, { "color": "red", "value": 80 } ] }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 6, "type": "stat", "title": "Load (watts)",
+          "gridPos": { "h": 5, "w": 4, "x": 20, "y": 0 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_ups_load_percent / 100 * on (ups) apcupsd_nominal_power_watts", "instant": true } ],
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value", "justifyMode": "center" },
+          "fieldConfig": { "defaults": { "unit": "watt", "decimals": 0, "thresholds": { "mode": "absolute", "steps": [ { "color": "blue", "value": null } ] } }, "overrides": [] }
+        },
+        {
+          "id": 7, "type": "stat", "title": "Input voltage",
+          "gridPos": { "h": 4, "w": 4, "x": 0, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_line_volts", "instant": true } ],
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "value", "graphMode": "none", "textMode": "value", "justifyMode": "center" },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "volt", "decimals": 0,
+              "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 207 }, { "color": "red", "value": 253 } ] }
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 8, "type": "stat", "title": "Model",
+          "gridPos": { "h": 4, "w": 4, "x": 4, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_info", "instant": true, "legendFormat": "{{model}}" } ],
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "none", "textMode": "name", "justifyMode": "center" },
+          "fieldConfig": { "defaults": {}, "overrides": [] }
+        },
+        {
+          "id": 9, "type": "stat", "title": "Last self-test",
+          "gridPos": { "h": 4, "w": 4, "x": 8, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_last_selftest_time_seconds * 1000", "instant": true } ],
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "none", "textMode": "value", "justifyMode": "center" },
+          "fieldConfig": { "defaults": { "unit": "dateTimeFromNow", "mappings": [ { "type": "value", "options": { "0": { "text": "never" } } } ] }, "overrides": [] }
+        },
+        {
+          "id": 10, "type": "stat", "title": "Last power outage",
+          "gridPos": { "h": 4, "w": 4, "x": 12, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_last_transfer_on_battery_time_seconds * 1000", "instant": true } ],
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "none", "textMode": "value", "justifyMode": "center" },
+          "fieldConfig": { "defaults": { "unit": "dateTimeFromNow", "mappings": [ { "type": "value", "options": { "0": { "text": "none since apcupsd start" } } } ] }, "overrides": [] }
+        },
+        {
+          "id": 11, "type": "stat", "title": "Switches to battery",
+          "description": "Since apcupsd last started on the Proxmox host",
+          "gridPos": { "h": 4, "w": 4, "x": 16, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_battery_number_transfers_total", "instant": true } ],
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "none", "textMode": "value", "justifyMode": "center" },
+          "fieldConfig": { "defaults": { "decimals": 0 }, "overrides": [] }
+        },
+        {
+          "id": 12, "type": "stat", "title": "Total time on battery",
+          "description": "Since apcupsd last started on the Proxmox host",
+          "gridPos": { "h": 4, "w": 4, "x": 20, "y": 5 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_battery_cumulative_time_on_seconds_total", "instant": true } ],
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "colorMode": "none", "graphMode": "none", "textMode": "value", "justifyMode": "center" },
+          "fieldConfig": { "defaults": { "unit": "s", "decimals": 0 }, "overrides": [] }
+        },
+        {
+          "id": 13, "type": "timeseries", "title": "Battery charge",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 9 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_battery_charge_percent", "legendFormat": "Charge" } ],
+          "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "fillOpacity": 15, "lineWidth": 2 } }, "overrides": [] },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+        },
+        {
+          "id": 14, "type": "timeseries", "title": "Runtime left",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 9 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_battery_time_left_seconds", "legendFormat": "Runtime" } ],
+          "fieldConfig": { "defaults": { "unit": "s", "min": 0, "custom": { "fillOpacity": 15, "lineWidth": 2 } }, "overrides": [] },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+        },
+        {
+          "id": 15, "type": "timeseries", "title": "Load",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 17 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            { "refId": "A", "expr": "apcupsd_ups_load_percent / 100 * on (ups) apcupsd_nominal_power_watts", "legendFormat": "Load (W)" },
+            { "refId": "B", "expr": "apcupsd_ups_load_percent", "legendFormat": "Load (%)" }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "watt", "min": 0, "custom": { "fillOpacity": 15, "lineWidth": 2 } },
+            "overrides": [ { "matcher": { "id": "byName", "options": "Load (%)" }, "properties": [ { "id": "unit", "value": "percent" }, { "id": "custom.axisPlacement", "value": "right" }, { "id": "custom.fillOpacity", "value": 0 } ] } ]
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+        },
+        {
+          "id": 16, "type": "timeseries", "title": "Mains and output voltage",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 17 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            { "refId": "A", "expr": "apcupsd_line_volts", "legendFormat": "Mains in" },
+            { "refId": "B", "expr": "apcupsd_output_volts", "legendFormat": "Output" },
+            { "refId": "C", "expr": "apcupsd_line_nominal_volts", "legendFormat": "Nominal" }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "volt", "custom": { "lineWidth": 2 } },
+            "overrides": [ { "matcher": { "id": "byName", "options": "Nominal" }, "properties": [ { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "gray" } } ] } ]
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+        },
+        {
+          "id": 17, "type": "timeseries", "title": "Battery voltage",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 25 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            { "refId": "A", "expr": "apcupsd_battery_volts", "legendFormat": "Battery" },
+            { "refId": "B", "expr": "apcupsd_battery_nominal_volts", "legendFormat": "Nominal" }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "volt", "custom": { "lineWidth": 2 } },
+            "overrides": [ { "matcher": { "id": "byName", "options": "Nominal" }, "properties": [ { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "gray" } } ] } ]
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+        },
+        {
+          "id": 18, "type": "timeseries", "title": "Time on battery",
+          "description": "Above zero while the UPS runs on battery (power outage)",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 25 },
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [ { "refId": "A", "expr": "apcupsd_battery_time_on_seconds", "legendFormat": "On battery" } ],
+          "fieldConfig": { "defaults": { "unit": "s", "min": 0, "color": { "mode": "fixed", "fixedColor": "red" }, "custom": { "fillOpacity": 30, "lineWidth": 2 } }, "overrides": [] },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+        }
+      ]
+    }
