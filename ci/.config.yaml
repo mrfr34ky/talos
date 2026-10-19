@@ -42,6 +42,7 @@ dummyEnv:
   CROWDSEC_BOUNCER_KEY: dummy-bouncer-key
   GRAFANA_ADMIN_PWD: dummy-password
   GRAFANA_SECRET_KEY: dummy-secret-key-0123456789abcdef
+  GALLERY_DL_PATH: /mnt/dummy/gallery-dl
   LITTLELINK_NAME: CI Dummy
   LITTLELINK_BIO: CI dummy bio
   LITTLELINK_PIXELFED: https://pixelfed.dummy.local/ci
