@@ -59,7 +59,7 @@ spec:
             main:
               args:
                 - --config
-                - /config/config.json
+                - /secrets/config.json
                 - --input-file
                 - /secrets/accounts.txt
               probes:
@@ -69,40 +69,7 @@ spec:
                   enabled: false
                 startup:
                   enabled: false
-    configmap:
-      config:
-        enabled: true
-        data:
-          config.json: |
-            {
-              "extractor": {
-                "base-directory": "/data",
-                "archive": "/data/.gallery-dl-archive.sqlite3",
-                "cookies": "/secrets/cookies.txt",
-                "cookies-update": false,
-                "sleep-request": "8.0-16.0",
-                "instagram": {
-                  "include": "posts,reels,avatar",
-                  "videos": true,
-                  "directory": ["Instagram", "{username}"],
-                  "filename": "{date:%Y-%m-%d}_{post_shortcode}_{num:>02}.{extension}",
-                  "postprocessors": [
-                    { "name": "metadata", "event": "post", "filename": "{date:%Y-%m-%d}_{post_shortcode}.json" }
-                  ],
-                  "avatar": { "filename": "avatar_{filename}.{extension}", "postprocessors": [] }
-                }
-              },
-              "cache": { "file": "/data/.gallery-dl-cache.sqlite3" },
-              "output": { "progress": false }
-            }
     persistence:
-      config:
-        enabled: true
-        type: configmap
-        objectName: config
-        mountPath: /config/config.json
-        subPath: config.json
-        readOnly: true
       secrets:
         enabled: true
         type: secret

@@ -1,5 +1,5 @@
 ---
-# No incoming traffic; out only to DNS and the public internet (Instagram), not the LAN or the cluster
+# No incoming traffic; out only to DNS and the public internet, not the LAN or the cluster
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
