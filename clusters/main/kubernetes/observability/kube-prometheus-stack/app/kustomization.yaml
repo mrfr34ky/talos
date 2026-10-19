@@ -12,4 +12,6 @@ resources:
   - prometheusrule-gluetun.yaml
   - podmonitor-flux.yaml
   - temperatures-dashboard.yaml
+  - apcupsd-exporter.yaml
+  - ups-dashboard.yaml
   - networkpolicy.yaml
