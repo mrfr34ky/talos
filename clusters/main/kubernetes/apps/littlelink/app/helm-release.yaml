@@ -87,7 +87,7 @@ spec:
             enabled: true
           certManager:
             enabled: true
-            certificateIssuer: domain-0-le-prod
+            certificateIssuer: domain-1-le-prod
           nginx:
             enabled: false
         hosts:
