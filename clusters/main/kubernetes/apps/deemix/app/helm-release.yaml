@@ -44,6 +44,7 @@ spec:
             main:
               env:
                 DISABLE_OWNERSHIP_CHECK_MUSIC: "true"
+                DEEMIX_SINGLE_USER: "true"
     resources:
       requests:
         cpu: 10m
