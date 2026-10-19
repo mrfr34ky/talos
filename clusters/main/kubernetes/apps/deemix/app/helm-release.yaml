@@ -37,6 +37,13 @@ spec:
     image:
       repository: ghcr.io/bambanah/deemix
       tag: v4.7.1@sha256:1fa4bdf600d40337abe30d970cfdd4e1a48cac5614742c2f577c3ac5f7092c34
+    workload:
+      main:
+        podSpec:
+          containers:
+            main:
+              env:
+                DISABLE_OWNERSHIP_CHECK_MUSIC: "true"
     resources:
       requests:
         cpu: 10m
