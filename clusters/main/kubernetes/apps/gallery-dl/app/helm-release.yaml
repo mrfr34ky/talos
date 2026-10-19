@@ -1,0 +1,117 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: gallery-dl
+  namespace: gallery-dl
+spec:
+  interval: 15m
+  chart:
+    spec:
+      chart: app-template
+      version: 21.0.4
+      sourceRef:
+        kind: HelmRepository
+        name: truecharts
+        namespace: flux-system
+      interval: 15m
+  timeout: 20m
+  maxHistory: 3
+  driftDetection:
+    mode: warn
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    TZ: Europe/Brussels
+    image:
+      repository: docker.io/mikf123/gallery-dl
+      pullPolicy: IfNotPresent
+      tag: 2026.10.19@sha256:8ed81f10e69186c55e7abe22f3f55fa3b4285016c5f12690953550398c0c3377
+    resources:
+      limits:
+        memory: 1Gi
+    securityContext:
+      container:
+        runAsUser: 568
+        runAsGroup: 568
+        readOnlyRootFilesystem: true
+    service:
+      main:
+        enabled: false
+    workload:
+      main:
+        type: CronJob
+        schedule: "30 6 * * *"
+        backoffLimit: 1
+        activeDeadlineSeconds: 14400
+        podSpec:
+          restartPolicy: Never
+          containers:
+            main:
+              args:
+                - --config
+                - /config/config.json
+                - --input-file
+                - /secrets/accounts.txt
+              probes:
+                liveness:
+                  enabled: false
+                readiness:
+                  enabled: false
+                startup:
+                  enabled: false
+    configmap:
+      config:
+        enabled: true
+        data:
+          config.json: |
+            {
+              "extractor": {
+                "base-directory": "/data",
+                "archive": "/data/.gallery-dl-archive.sqlite3",
+                "cookies": "/secrets/cookies.txt",
+                "cookies-update": false,
+                "sleep-request": "8.0-16.0",
+                "instagram": {
+                  "include": "posts,reels",
+                  "videos": true,
+                  "directory": ["Instagram", "{username}"],
+                  "filename": "{date:%Y-%m-%d}_{post_shortcode}_{num:>02}.{extension}",
+                  "postprocessors": [
+                    { "name": "metadata", "event": "post", "filename": "{date:%Y-%m-%d}_{post_shortcode}.json" }
+                  ]
+                }
+              },
+              "cache": { "file": "/data/.gallery-dl-cache.sqlite3" },
+              "output": { "progress": false }
+            }
+    persistence:
+      config:
+        enabled: true
+        type: configmap
+        objectName: config
+        mountPath: /config/config.json
+        subPath: config.json
+        readOnly: true
+      secrets:
+        enabled: true
+        type: secret
+        objectName: gallery-dl
+        expandObjectName: false
+        mountPath: /secrets
+        readOnly: true
+      data:
+        enabled: true
+        type: nfs
+        server: 192.168.1.49
+        path: ${GALLERY_DL_PATH}
+        mountPath: /data
