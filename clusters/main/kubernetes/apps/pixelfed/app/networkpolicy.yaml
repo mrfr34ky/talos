@@ -1,7 +1,6 @@
 ---
-# Reachable through either Traefik (internal now, external once public) and Homarr's status check.
-# Can reach its MariaDB, Redis, DNS and the public internet (the VPN server; gluetun's kill switch
-# keeps everything else inside the tunnel), not the LAN or the cluster.
+# Reachable through either Traefik and Homarr's status check. Can reach its MariaDB, Redis, DNS and
+# the public internet (federation, media fetches, mail), not the LAN or the cluster.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
