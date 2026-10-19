@@ -32,7 +32,6 @@ resources:
   - tailscale/ks.yaml
   #- flaresolverr/ks.yaml
   - plex-auto-languages/ks.yaml
-  #- email2pdf/ks.yaml
   - sabnzbd/ks.yaml
   #- tdarr/ks.yaml
   #- backuppc/ks.yaml
