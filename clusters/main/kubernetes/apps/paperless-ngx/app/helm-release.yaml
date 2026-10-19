@@ -113,7 +113,8 @@ spec:
                 PAPERLESS_OCR_LANGUAGE: "eng"
                 PAPERLESS_OCR_LANGUAGES: "eng"
                 PAPERLESS_URL: "https://docs.${DOMAIN_0}"
-                PAPERLESS_CSRF_TRUSTED_ORIGINS: "https://*.${DOMAIN_0}"             
+                PAPERLESS_CSRF_TRUSTED_ORIGINS: "https://*.${DOMAIN_0}"
+                PAPERLESS_EMAIL_PARSE_DEFAULT_LAYOUT: "3"
     ingress:
         main:
           enabled: true
