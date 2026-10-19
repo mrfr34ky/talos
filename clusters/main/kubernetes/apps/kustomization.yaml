@@ -37,7 +37,7 @@ resources:
   #- backuppc/ks.yaml
   - crowdsec/ks.yaml
   - littlelink/ks.yaml
-  - gallery-dl/ks.yaml
+  #- gallery-dl/ks.yaml
   #####################CNPG#########################
   - nextcloud/ks.yaml
   - mealie/ks.yaml
