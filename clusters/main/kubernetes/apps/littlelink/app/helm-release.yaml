@@ -54,7 +54,7 @@ spec:
         enabled: true
         type: configmap
         objectName: theme
-        mountPath: /usr/src/app/public/css/dark.css
+        mountPath: /usr/src/app/build/public/css/dark.css
         subPath: dark.css
         readOnly: true
     workload:
