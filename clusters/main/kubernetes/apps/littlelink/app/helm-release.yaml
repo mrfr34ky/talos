@@ -49,6 +49,9 @@ spec:
             body {
               background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url("https://raw.githubusercontent.com/mrfr34ky/assets/main/background.jpg") center / cover fixed;
             }
+            .avatar {
+              display: none;
+            }
     persistence:
       theme:
         enabled: true
@@ -70,7 +73,6 @@ spec:
                 THEME: Dark
                 NAME: ${LITTLELINK_NAME}
                 BIO: ${LITTLELINK_BIO}
-                AVATAR_ALT: ${LITTLELINK_NAME}
                 BUTTON_ORDER: FACEBOOK,INSTAGRAM,LINKED_IN,STRAVA,GITHUB
                 GITHUB: https://github.com/mrfr34ky
                 #PIXELFED: ${LITTLELINK_PIXELFED}
