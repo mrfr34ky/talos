@@ -1,6 +1,6 @@
 ---
-# Paperless parses untrusted documents: it can only reach its Postgres, Redis, DNS and the public
-# internet (Gmail IMAP), not the LAN or other apps. Incoming is unchanged.
+# Paperless parses untrusted documents: it can only reach its Postgres, Redis, Gotenberg, Tika, DNS
+# and the public internet (Gmail IMAP), not the LAN or other apps. Incoming is unchanged.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -30,6 +30,24 @@ spec:
       ports:
         - protocol: TCP
           port: 6379
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: paperless-ngx
+              app.kubernetes.io/name: paperless-ngx
+              pod.name: gotenberg
+      ports:
+        - protocol: TCP
+          port: 3000
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: paperless-ngx
+              app.kubernetes.io/name: paperless-ngx
+              pod.name: tika
+      ports:
+        - protocol: TCP
+          port: 9998
     - to:
         - namespaceSelector:
             matchLabels:
@@ -136,3 +154,54 @@ spec:
       ports:
         - protocol: TCP
           port: 8000
+---
+# Gotenberg and Tika only accept Paperless and reach nothing (no remote content in rendered mails)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: paperless-ngx-gotenberg
+  namespace: paperless-ngx
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: paperless-ngx
+      app.kubernetes.io/name: paperless-ngx
+      pod.name: gotenberg
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: paperless-ngx
+              app.kubernetes.io/name: paperless-ngx
+              pod.name: main
+      ports:
+        - protocol: TCP
+          port: 3000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: paperless-ngx-tika
+  namespace: paperless-ngx
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: paperless-ngx
+      app.kubernetes.io/name: paperless-ngx
+      pod.name: tika
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: paperless-ngx
+              app.kubernetes.io/name: paperless-ngx
+              pod.name: main
+      ports:
+        - protocol: TCP
+          port: 9998

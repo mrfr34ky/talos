@@ -97,6 +97,8 @@ spec:
       # The chart doesn't generate it: unset, it stays at its public PLACEHOLDER default.
       # Letters and digits only (it ends up in PAPERLESS_REDIS).
       password: ${PAPERLESS_REDIS_PWD}
+    tika:
+      enabled: true
     workload:
       main:
         podSpec:
