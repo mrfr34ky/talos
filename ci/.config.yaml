@@ -40,7 +40,6 @@ dummyEnv:
   COLLABORA_USER: ci
   COLLABORA_PWD: dummy-password
   CROWDSEC_BOUNCER_KEY: dummy-bouncer-key
-  EMAIL2PDF_SMTP_PWD: dummy-password
   GRAFANA_ADMIN_PWD: dummy-password
   GRAFANA_SECRET_KEY: dummy-secret-key-0123456789abcdef
   LITTLELINK_NAME: CI Dummy
