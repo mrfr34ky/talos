@@ -82,13 +82,14 @@ spec:
                 "cookies-update": false,
                 "sleep-request": "8.0-16.0",
                 "instagram": {
-                  "include": "posts,reels",
+                  "include": "posts,reels,avatar",
                   "videos": true,
                   "directory": ["Instagram", "{username}"],
                   "filename": "{date:%Y-%m-%d}_{post_shortcode}_{num:>02}.{extension}",
                   "postprocessors": [
                     { "name": "metadata", "event": "post", "filename": "{date:%Y-%m-%d}_{post_shortcode}.json" }
-                  ]
+                  ],
+                  "avatar": { "filename": "avatar_{filename}.{extension}", "postprocessors": [] }
                 }
               },
               "cache": { "file": "/data/.gallery-dl-cache.sqlite3" },
