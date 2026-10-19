@@ -155,7 +155,8 @@ spec:
         - protocol: TCP
           port: 8000
 ---
-# Gotenberg and Tika only accept Paperless and reach nothing (no remote content in rendered mails)
+# Gotenberg and Tika only accept Paperless; out only to DNS, Postgres and Redis (the chart's startup
+# checks), never the internet, so rendered mails load no remote content
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -180,6 +181,34 @@ spec:
       ports:
         - protocol: TCP
           port: 3000
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: paperless-ngx-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: paperless-ngx
+              app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -205,3 +234,31 @@ spec:
       ports:
         - protocol: TCP
           port: 9998
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: paperless-ngx-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: paperless-ngx
+              app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
