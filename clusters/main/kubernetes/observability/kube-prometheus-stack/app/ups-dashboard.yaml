@@ -184,13 +184,12 @@ data:
           "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
         },
         {
-          "id": 16, "type": "timeseries", "title": "Mains and output voltage",
+          "id": 16, "type": "timeseries", "title": "Mains voltage",
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 17 },
           "datasource": { "type": "prometheus", "uid": "prometheus" },
           "targets": [
             { "refId": "A", "expr": "apcupsd_line_volts", "legendFormat": "Mains in" },
-            { "refId": "B", "expr": "apcupsd_output_volts", "legendFormat": "Output" },
-            { "refId": "C", "expr": "apcupsd_line_nominal_volts", "legendFormat": "Nominal" }
+            { "refId": "B", "expr": "apcupsd_line_nominal_volts", "legendFormat": "Nominal" }
           ],
           "fieldConfig": {
             "defaults": { "unit": "volt", "custom": { "lineWidth": 2 } },
