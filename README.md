@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧊 Personal Talos Kubernetes Cluster · b-a-l-a-z-s
+# 🧊 Personal Talos Kubernetes Cluster of b-a-l-a-z-s
 
 *A self-hosted, GitOps-driven Kubernetes cluster built on Talos Linux and Proxmox VE, focused on reliability, observability, and clean automation.*
 
