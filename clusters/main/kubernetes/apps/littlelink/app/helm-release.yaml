@@ -49,9 +49,6 @@ spec:
             body {
               background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url("https://raw.githubusercontent.com/b-a-l-a-z-s/assets/main/background.jpg") center / cover fixed;
             }
-            .avatar {
-              display: none;
-            }
     persistence:
       theme:
         enabled: true
@@ -71,6 +68,9 @@ spec:
                 META_AUTHOR: ${LITTLELINK_NAME}
                 META_INDEX_STATUS: noindex
                 THEME: Dark
+                AVATAR_URL: https://gravatar.com/avatar/${LITTLELINK_GRAVATAR}?s=128
+                AVATAR_2X_URL: https://gravatar.com/avatar/${LITTLELINK_GRAVATAR}?s=256
+                AVATAR_ALT: ${LITTLELINK_NAME}
                 NAME: ${LITTLELINK_NAME}
                 BIO: ${LITTLELINK_BIO}
                 BUTTON_ORDER: FACEBOOK,INSTAGRAM,LINKED_IN,YOUTUBE,STRAVA,GITHUB
