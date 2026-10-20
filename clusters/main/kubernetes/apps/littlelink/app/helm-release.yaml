@@ -73,17 +73,18 @@ spec:
                 THEME: Dark
                 NAME: ${LITTLELINK_NAME}
                 BIO: ${LITTLELINK_BIO}
-                BUTTON_ORDER: FACEBOOK,INSTAGRAM,LINKED_IN,STRAVA,GITHUB
+                BUTTON_ORDER: FACEBOOK,INSTAGRAM,LINKED_IN,YOUTUBE,STRAVA,GITHUB
                 GITHUB: https://github.com/b-a-l-a-z-s
                 #PIXELFED: ${LITTLELINK_PIXELFED}
                 INSTAGRAM: ${LITTLELINK_INSTAGRAM}
                 FACEBOOK: ${LITTLELINK_FACEBOOK}
+                YOUTUBE: ${LITTLELINK_YOUTUBE}
                 LINKED_IN: ${LITTLELINK_LINKEDIN}
                 STRAVA: ${LITTLELINK_STRAVA}
     ingress:
       main:
         enabled: true
-        ingressClassName: internal
+        ingressClassName: external
         integrations:
           traefik:
             enabled: true
