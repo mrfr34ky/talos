@@ -63,7 +63,7 @@ spec:
           containers:
             main:
               env:
-                META_TITLE: ""
+                META_TITLE: ${LITTLELINK_NAME}
                 META_DESCRIPTION: ${LITTLELINK_BIO}
                 META_AUTHOR: ${LITTLELINK_NAME}
                 META_INDEX_STATUS: noindex
