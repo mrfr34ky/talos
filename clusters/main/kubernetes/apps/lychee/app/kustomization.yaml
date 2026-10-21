@@ -4,3 +4,10 @@ resources:
   - namespace.yaml
   - helm-release.yaml
   - networkpolicy.yaml
+configMapGenerator:
+  - name: lychee-sync-script
+    namespace: lychee
+    files:
+      - sync.php
+generatorOptions:
+  disableNameSuffixHash: true

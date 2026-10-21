@@ -60,6 +60,13 @@ spec:
         ports:
           main:
             port: 8000
+    secret:
+      sync:
+        enabled: true
+        data:
+          NC_USER: "${LYCHEE_NC_USER}"
+          NC_PASS: "${LYCHEE_NC_APP_PASSWORD}"
+          LYCHEE_TOKEN: "${LYCHEE_API_TOKEN}"
     workload:
       main:
         podSpec:
@@ -84,6 +91,60 @@ spec:
                     key: password
                 # Skips the recursive chown/chmod of the NFS uploads on every start
                 SKIP_PERMISSIONS_CHECKS: "yes"
+      # Nextcloud tags -> Lychee albums, see sync.php
+      sync:
+        enabled: true
+        primary: false
+        type: CronJob
+        schedule: "*/10 * * * *"
+        backoffLimit: 1
+        activeDeadlineSeconds: 570
+        podSpec:
+          restartPolicy: Never
+          containers:
+            sync:
+              enabled: true
+              primary: true
+              imageSelector: image
+              command: ["php", "/scripts/sync.php"]
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 568
+                runAsGroup: 568
+                readOnlyRootFilesystem: true
+              env:
+                NC_URL: http://nextcloud.nextcloud.svc.cluster.local:8080
+                NC_HOST: next.${DOMAIN_0}
+                NC_USER:
+                  secretKeyRef:
+                    name: sync
+                    key: NC_USER
+                NC_PASS:
+                  secretKeyRef:
+                    name: sync
+                    key: NC_PASS
+                LYCHEE_URL: http://lychee-app-template.lychee.svc.cluster.local:8000
+                LYCHEE_TOKEN:
+                  secretKeyRef:
+                    name: sync
+                    key: LYCHEE_TOKEN
+                DB_HOST:
+                  secretKeyRef:
+                    name: cnpg-main-urls
+                    key: host
+                DB_PASSWORD:
+                  secretKeyRef:
+                    name: cnpg-main-user
+                    key: password
+                MAX_EDGE: "3840"
+                JPEG_QUALITY: "85"
+              probes:
+                liveness:
+                  enabled: false
+                readiness:
+                  enabled: false
+                startup:
+                  enabled: false
     persistence:
       uploads:
         enabled: true
@@ -99,6 +160,23 @@ spec:
         enabled: true
         type: emptyDir
         mountPath: /app/storage/tmp
+      sync-script:
+        enabled: true
+        type: configmap
+        objectName: lychee-sync-script
+        expandObjectName: false
+        mountPath: /scripts
+        readOnly: true
+        targetSelector:
+          sync:
+            sync: {}
+      sync-tmp:
+        enabled: true
+        type: emptyDir
+        mountPath: /tmp
+        targetSelector:
+          sync:
+            sync: {}
     ingress:
       main:
         enabled: true

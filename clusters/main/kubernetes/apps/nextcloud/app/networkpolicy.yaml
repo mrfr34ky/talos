@@ -1,6 +1,7 @@
 ---
 # Nextcloud's own pods (app, nginx, Collabora, Imaginary, notify_push, Redis, cron jobs) talk freely
-# to each other. From outside: traefik-external (web and Collabora) and Homarr's status check.
+# to each other. From outside: traefik-external (web and Collabora), Homarr's status check and
+# Lychee's sync CronJob (WebDAV).
 # Out: its Postgres, DNS, traefik-external (own URL), the TrueNAS SMB share and the public internet.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -32,6 +33,17 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: homarr
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: lychee
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: lychee
+              pod.name: sync
       ports:
         - protocol: TCP
           port: 8080
