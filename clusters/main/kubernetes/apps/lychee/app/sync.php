@@ -73,27 +73,49 @@ function nc_tags(): array {
     return $tags;
 }
 
-function nc_tagged_files(int $tagId): array {
+const DAV_PROPS = '<d:prop><oc:fileid/><d:getcontenttype/><d:getlastmodified/><d:getetag/><d:resourcetype/></d:prop>';
+
+// One WebDAV response -> ['folder' => bool, fileid, href, mime, mtime, etag]
+function dav_item(SimpleXMLElement $r): array {
+    $r->registerXPathNamespace('d', 'DAV:'); $r->registerXPathNamespace('oc', 'http://owncloud.org/ns');
+    return [
+        'folder' => (bool)$r->xpath('.//d:resourcetype/d:collection'),
+        'fileid' => (int)($r->xpath('.//oc:fileid')[0] ?? 0),
+        'href'   => (string)$r->xpath('.//d:href')[0],
+        'mime'   => (string)($r->xpath('.//d:getcontenttype')[0] ?? ''),
+        'mtime'  => strtotime((string)($r->xpath('.//d:getlastmodified')[0] ?? '')) ?: time(),
+        'etag'   => trim((string)($r->xpath('.//d:getetag')[0] ?? ''), '"'),
+    ];
+}
+
+function is_media(array $i): bool { return !$i['folder'] && (bool)preg_match('#^(image|video)/#', $i['mime']); }
+
+// Tagged files and folders
+function nc_tagged(int $tagId): array {
     global $cfg;
-    $body = '<?xml version="1.0"?><oc:filter-files xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns"><d:prop>'
-          . '<oc:fileid/><d:getcontenttype/><d:getlastmodified/><d:resourcetype/></d:prop>'
+    $body = '<?xml version="1.0"?><oc:filter-files xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">' . DAV_PROPS
           . "<oc:filter-rules><oc:systemtag>$tagId</oc:systemtag></oc:filter-rules></oc:filter-files>";
     [$code, $xml] = nc('REPORT', '/remote.php/dav/files/' . rawurlencode($cfg['nc_user']) . '/', $body, ['Content-Type: application/xml']);
-    if ($code !== 207) throw new RuntimeException("Nextcloud tag $tagId files: HTTP $code");
-    $files = [];
-    foreach (dav_xml($xml)->xpath('//d:response') as $r) {
-        $r->registerXPathNamespace('d', 'DAV:'); $r->registerXPathNamespace('oc', 'http://owncloud.org/ns');
-        if ($r->xpath('.//d:resourcetype/d:collection')) continue; // tagged folders are not expanded
-        $mime = (string)($r->xpath('.//d:getcontenttype')[0] ?? '');
-        if (!preg_match('#^(image|video)/#', $mime)) continue;
-        $files[] = [
-            'fileid' => (int)($r->xpath('.//oc:fileid')[0] ?? 0),
-            'href'   => (string)$r->xpath('.//d:href')[0],
-            'mime'   => $mime,
-            'mtime'  => strtotime((string)($r->xpath('.//d:getlastmodified')[0] ?? '')) ?: time(),
-        ];
+    if ($code !== 207) throw new RuntimeException("Nextcloud tag $tagId: HTTP $code");
+    return array_map('dav_item', dav_xml($xml)->xpath('//d:response'));
+}
+
+// All media below a folder (Depth 1 per level: Nextcloud refuses Depth infinity)
+function nc_folder_media(string $href): array {
+    $body = '<?xml version="1.0"?><d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">' . DAV_PROPS . '</d:propfind>';
+    $media = []; $queue = [$href];
+    while ($queue) {
+        $dir = array_shift($queue);
+        [$code, $xml] = nc('PROPFIND', $dir, $body, ['Depth: 1', 'Content-Type: application/xml']);
+        if ($code !== 207) throw new RuntimeException('list ' . rawurldecode($dir) . ": HTTP $code");
+        foreach (dav_xml($xml)->xpath('//d:response') as $r) {
+            $i = dav_item($r);
+            if (rtrim(rawurldecode($i['href']), '/') === rtrim(rawurldecode($dir), '/')) continue; // the folder itself
+            if ($i['folder']) $queue[] = $i['href'];
+            elseif (is_media($i)) $media[] = $i;
+        }
     }
-    return $files;
+    return $media;
 }
 
 // --- tag rules ---
@@ -288,15 +310,31 @@ if (!$hasSchema && !$cfg['dry']) {
         updated_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY (fileid, album_path))');
     $hasSchema = true;
 }
-$state = []; $photoOf = [];
+if ($hasSchema && !$cfg['dry']) {
+    // Tagged folders: etag at the last complete pass, so unchanged folders aren't listed again
+    $pdo->exec('CREATE TABLE IF NOT EXISTS ncsync.folders (
+        fileid bigint NOT NULL, tag text NOT NULL, etag text NOT NULL,
+        updated_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY (fileid, tag))');
+}
+$state = []; $photoOf = []; $folderEtag = [];
 if ($hasSchema) {
     foreach ($pdo->query('select fileid, album_path, status, photo_id, attempts from ncsync.files') as $r) {
         $state[$r['fileid'] . '|' . $r['album_path']] = $r;
         if ($r['status'] === 'done' && $r['photo_id']) $photoOf[(int)$r['fileid']] = $r['photo_id'];
     }
+    if ($pdo->query("select to_regclass('ncsync.folders')")->fetchColumn()) {
+        foreach ($pdo->query('select fileid, tag, etag from ncsync.folders') as $r) $folderEtag[$r['fileid'] . '|' . $r['tag']] = $r['etag'];
+    }
+}
+function is_settled(int $fileid, string $path): bool {
+    global $state;
+    $s = $state["$fileid|$path"] ?? null;
+    return $s && ($s['status'] === 'done' || (int)$s['attempts'] >= MAX_ATTEMPTS);
 }
 function record(int $fileid, string $path, string $status, ?string $photo, ?string $error, string $href): void {
-    global $pdo, $cfg;
+    global $pdo, $cfg, $state;
+    $prev = $state["$fileid|$path"]['attempts'] ?? 0;
+    $state["$fileid|$path"] = ['status' => $status, 'photo_id' => $photo, 'attempts' => (int)$prev + ($status === 'failed' ? 1 : 0)];
     if ($cfg['dry']) return;
     $pdo->prepare('INSERT INTO ncsync.files (fileid, album_path, status, photo_id, attempts, last_error, href, updated_at)
                    VALUES (?, ?, ?, ?, ?, ?, ?, now())
@@ -308,18 +346,37 @@ function record(int $fileid, string $path, string $status, ?string $photo, ?stri
 
 // --- main ---
 $tags = nc_tags();
-$work = []; // album path -> [file, ...]
+$work = [];        // album path -> [fileid => file]
+$folderKeys = [];  // "folderid|tag" -> [etag, ["fileid|path", ...]] for folders listed in this run
 $tagged = 0;
 foreach ($tags as $id => $name) {
     if (!($rule = tag_rule($name))) continue;
-    $files = nc_tagged_files($id);
-    logm("tag \"$name\": " . count($files) . ' media file(s)');
+    $items = nc_tagged($id);
+    $files = array_values(array_filter($items, 'is_media'));
+    $folders = array_values(array_filter($items, fn($i) => $i['folder']));
+    $listed = 0;
+    foreach ($folders as $d) {
+        $fkey = $d['fileid'] . '|' . $name;
+        if ($d['etag'] !== '' && ($folderEtag[$fkey] ?? null) === $d['etag']) continue; // unchanged since the last complete pass
+        if (time() - $started > $cfg['budget'] / 2) continue; // leave time for uploads; the rest is listed next run
+        try {
+            $media = nc_folder_media($d['href']);
+        } catch (Throwable $e) {
+            logm('folder ' . rawurldecode($d['href']) . ': ' . $e->getMessage());
+            continue;
+        }
+        $listed++;
+        $folderKeys[$fkey] = [$d['etag'], []];
+        foreach ($media as $m) {
+            $files[] = $m;
+            $folderKeys[$fkey][1][] = $m['fileid'] . '|' . ($rule[0] === 'mirror' ? mirror_path($m['href']) : $rule[1]);
+        }
+    }
+    logm("tag \"$name\": " . count(array_filter($items, 'is_media')) . ' file(s), ' . count($folders) . " folder(s), $listed listed");
     foreach ($files as $f) {
         $tagged++;
         $path = $rule[0] === 'mirror' ? mirror_path($f['href']) : $rule[1];
-        if ($path === '') continue;
-        $s = $state[$f['fileid'] . '|' . $path] ?? null;
-        if ($s && ($s['status'] === 'done' || (int)$s['attempts'] >= MAX_ATTEMPTS)) continue;
+        if ($path === '' || is_settled($f['fileid'], $path)) continue;
         $work[$path][$f['fileid']] = $f;
     }
 }
@@ -381,5 +438,17 @@ foreach ($work as $path => $files) {
         catch (Throwable $e) { logm("album description \"$path\": " . $e->getMessage()); }
     }
 }
+// Remember the etag of folders whose media are all settled: they are skipped until their content changes
+$saved = 0;
+foreach ($folderKeys as $fkey => [$etag, $keys]) {
+    if ($cfg['dry'] || $etag === '') continue;
+    foreach ($keys as $k) { [$fid, $p] = explode('|', $k, 2); if (!is_settled((int)$fid, $p)) continue 2; }
+    [$fid, $tag] = explode('|', $fkey, 2);
+    $pdo->prepare('INSERT INTO ncsync.folders (fileid, tag, etag, updated_at) VALUES (?, ?, ?, now())
+                   ON CONFLICT (fileid, tag) DO UPDATE SET etag = excluded.etag, updated_at = now()')
+        ->execute([(int)$fid, $tag, $etag]);
+    $saved++;
+}
+if ($folderKeys) logm("folders complete: $saved of " . count($folderKeys) . ' listed');
 logm("done: uploaded {$n['uploaded']}, copied {$n['copied']}, failed {$n['failed']}, albums created " . count($created)
     . ($stop ? ', stopped at the time/file limit (continues next run)' : '') . ', ' . (time() - $started) . 's');
