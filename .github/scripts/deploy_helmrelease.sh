@@ -6,6 +6,7 @@
 #   - strips CNPG backup/recovery settings but keeps the database itself
 #   - rewrites storage classes that don't exist in k3d (openebs-hostpath, longhorn) to local-path
 #   - skips dependency charts this repo doesn't have instead of failing
+#   - creates the other namespaces the chart writes into (clusterissuer: cert-manager)
 #   - tells helm template that the Prometheus Operator API exists (see TEMPLATE_API_VERSIONS)
 # Flux postRenderers are not applied (plain helm); CI-only overrides go in ci/<chart>.yaml.
 set -euo pipefail
@@ -285,15 +286,15 @@ fi
 print_sub_section "🔄 CI value mutations"
 changed=false
 
-# Disable volsync
+# Disable volsync. Only lists count: grafana also has a dashboard map named "volsync"
 if yq -e '
-  (.. | select(type == "!!map" and has("volsync")).volsync[]?.src.enabled == true) or
-  (.. | select(type == "!!map" and has("volsync")).volsync[]?.dest.enabled == true)
+  [.. | select(type == "!!map" and has("volsync")) | .volsync | select(type == "!!seq") | .[]
+   | select(.src.enabled == true or .dest.enabled == true)] | length > 0
 ' "$VALUES_FILE" >/dev/null 2>&1; then
 
   yq -i '
-    (.. | select(type == "!!map" and has("volsync")).volsync[]?.src.enabled) = false |
-    (.. | select(type == "!!map" and has("volsync")).volsync[]?.dest.enabled) = false
+    (.. | select(type == "!!map" and has("volsync")) | .volsync | select(type == "!!seq") | .[] | .src.enabled) = false |
+    (.. | select(type == "!!map" and has("volsync")) | .volsync | select(type == "!!seq") | .[] | .dest.enabled) = false
   ' "$VALUES_FILE"
 
   echo "      ⚠️ Volsync src/dest disabled for CI"
@@ -484,6 +485,15 @@ if $install_traefik; then
     "🔀" \
     "clusters/main/kubernetes/networking/traefik-internal/app/helm-release.yaml"
 fi
+
+# Namespaces the chart writes into besides its own (clusterissuer: Secrets in cert-manager)
+while IFS= read -r extra_namespace; do
+  [[ -z "$extra_namespace" || "$extra_namespace" == "$NAMESPACE" ]] && continue
+  kubectl create namespace "$extra_namespace" \
+    --dry-run=client \
+    --output=yaml \
+  | kubectl apply --filename -
+done < <(yq -N '.metadata.namespace // ""' "$RENDERED" | sort -u)
 
 # --------------------------------------------------
 # Deploy chart

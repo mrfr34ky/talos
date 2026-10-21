@@ -10,16 +10,17 @@ canaryHelmRelease: clusters/main/kubernetes/observability/kromgo/app/helm-releas
 
 dummyEnv:
   DOMAIN_0: dummy.local
-  DOMAIN_0_EMAIL: ci@dummy.local
+  # Emails use example.com: validators reject reserved domains like .local (pgadmin)
+  DOMAIN_0_EMAIL: ci@example.com
   DOMAIN_0_CLOUDFLARE_TOKEN: dummy-cloudflare-token
   DOMAIN_1: dummy1.local
-  DOMAIN_1_EMAIL: ci@dummy1.local
+  DOMAIN_1_EMAIL: ci1@example.com
   DOMAIN_1_CLOUDFLARE_TOKEN: dummy-cloudflare-token-1
   DOMAIN_2: dummy2.local
-  DOMAIN_2_EMAIL: ci@dummy2.local
+  DOMAIN_2_EMAIL: ci2@example.com
   DOMAIN_2_CLOUDFLARE_TOKEN: dummy-cloudflare-token-2
-  GMAIL_USER: ci@dummy.local
-  PIXELFED_CONTACT_EMAIL: contact@dummy.local
+  GMAIL_USER: ci@example.com
+  PIXELFED_CONTACT_EMAIL: contact@example.com
   PODNET: 10.42.0.0/16
   METALLB_RANGE: 192.168.20.211-192.168.20.219
   BLOCKY_IP: 192.168.20.212
