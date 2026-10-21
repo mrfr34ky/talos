@@ -60,13 +60,6 @@ spec:
         ports:
           main:
             port: 8000
-    secret:
-      sync:
-        enabled: true
-        data:
-          NC_USER: "${LYCHEE_NC_USER}"
-          NC_PASS: "${LYCHEE_NC_APP_PASSWORD}"
-          LYCHEE_TOKEN: "${LYCHEE_API_TOKEN}"
     workload:
       main:
         podSpec:
@@ -91,11 +84,14 @@ spec:
                     key: password
                 # Skips the recursive chown/chmod of the NFS uploads on every start
                 SKIP_PERMISSIONS_CHECKS: "yes"
+                # Default 30 s cut big album deletes off midway, leaving the files behind
+                LYCHEE_MAX_EXECUTION_TIME: "300"
       # Nextcloud tags -> Lychee albums, see sync.php
       sync:
         enabled: true
         primary: false
         type: CronJob
+        suspend: true
         schedule: "*/10 * * * *"
         backoffLimit: 1
         activeDeadlineSeconds: 570
@@ -112,21 +108,28 @@ spec:
                 runAsUser: 568
                 runAsGroup: 568
                 readOnlyRootFilesystem: true
+                capabilities:
+                  add: []
+                  drop:
+                    - ALL
               env:
                 NC_URL: http://nextcloud.nextcloud.svc.cluster.local:8080
                 NC_HOST: next.${DOMAIN_0}
                 NC_USER:
                   secretKeyRef:
-                    name: sync
+                    expandObjectName: false
+                    name: lychee-sync
                     key: NC_USER
                 NC_PASS:
                   secretKeyRef:
-                    name: sync
+                    expandObjectName: false
+                    name: lychee-sync
                     key: NC_PASS
                 LYCHEE_URL: http://lychee-app-template.lychee.svc.cluster.local:8000
                 LYCHEE_TOKEN:
                   secretKeyRef:
-                    name: sync
+                    expandObjectName: false
+                    name: lychee-sync
                     key: LYCHEE_TOKEN
                 DB_HOST:
                   secretKeyRef:
@@ -138,6 +141,7 @@ spec:
                     key: password
                 MAX_EDGE: "3840"
                 JPEG_QUALITY: "85"
+                MAX_FILE_MB: "2048"
               probes:
                 liveness:
                   enabled: false
@@ -173,6 +177,8 @@ spec:
       sync-tmp:
         enabled: true
         type: emptyDir
+        # On the node's disk (with etcd): bounded; files above MAX_FILE_MB are skipped
+        size: 4Gi
         mountPath: /tmp
         targetSelector:
           sync:

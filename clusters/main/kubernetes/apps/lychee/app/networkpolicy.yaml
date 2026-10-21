@@ -35,6 +35,58 @@ spec:
         - protocol: TCP
           port: 5432
 ---
+# Outgoing for the sync CronJob: only DNS, Nextcloud, Lychee and its Postgres
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: lychee-sync-egress
+  namespace: lychee
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: lychee
+      pod.name: sync
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: nextcloud
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: nextcloud
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: lychee
+              pod.name: main
+      ports:
+        - protocol: TCP
+          port: 8000
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: lychee-app-template-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+---
 # Incoming only from traefik-internal and the sync CronJob (API uploads)
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

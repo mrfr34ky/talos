@@ -22,11 +22,14 @@ $cfg = [
     'quality'   => (int)(getenv('JPEG_QUALITY') ?: 85),
     'budget'    => (int)(getenv('TIME_BUDGET') ?: 480),
     'max_files' => (int)(getenv('MAX_FILES') ?: 0),
+    'max_bytes' => (int)(getenv('MAX_FILE_MB') ?: 2048) * 1024 * 1024,
     'dry'       => getenv('DRY') === '1',
     'tmp'       => sys_get_temp_dir(),
 ];
 const MAX_ATTEMPTS = 3;
 $started = time();
+
+class SkipFile extends RuntimeException {} // not retried: too big or not a recognised media file
 
 function logm(string $s): void { fwrite(STDOUT, date('H:i:s') . " $s\n"); }
 
@@ -73,7 +76,7 @@ function nc_tags(): array {
     return $tags;
 }
 
-const DAV_PROPS = '<d:prop><oc:fileid/><d:getcontenttype/><d:getlastmodified/><d:getetag/><d:resourcetype/></d:prop>';
+const DAV_PROPS = '<d:prop><oc:fileid/><d:getcontenttype/><d:getcontentlength/><d:getlastmodified/><d:getetag/><d:resourcetype/></d:prop>';
 
 // One WebDAV response -> ['folder' => bool, fileid, href, mime, mtime, etag]
 function dav_item(SimpleXMLElement $r): array {
@@ -83,6 +86,7 @@ function dav_item(SimpleXMLElement $r): array {
         'fileid' => (int)($r->xpath('.//oc:fileid')[0] ?? 0),
         'href'   => (string)$r->xpath('.//d:href')[0],
         'mime'   => (string)($r->xpath('.//d:getcontenttype')[0] ?? ''),
+        'size'   => (int)($r->xpath('.//d:getcontentlength')[0] ?? 0),
         'mtime'  => strtotime((string)($r->xpath('.//d:getlastmodified')[0] ?? '')) ?: time(),
         'etag'   => trim((string)($r->xpath('.//d:getetag')[0] ?? ''), '"'),
     ];
@@ -129,22 +133,22 @@ function tag_rule(string $name): ?array {
     $n = trim($name);
     if (strcasecmp($n, 'lychee') === 0) return ['mirror', ''];
     if (preg_match('/^(insta|lychee)\s*:\s*(.+)$/iu', $n, $m) && ($path = clean_path($m[2])) !== '') {
-        return strcasecmp($m[1], 'insta') === 0 ? ['path', "Instagram/$path"] : ['path', $path];
+        return ['path', $path];
     }
     return null;
 }
 
-// Folder path inside the share: files/<user>/Shared/<share>/a/b/x.jpg -> a/b (or the share name at its root)
-function mirror_path(string $href): string {
-    global $cfg;
-    $rel = rawurldecode($href);
-    $prefix = '/remote.php/dav/files/' . $cfg['nc_user'] . '/';
-    if (str_starts_with($rel, $prefix)) $rel = substr($rel, strlen($prefix));
-    $parts = explode('/', trim($rel, '/'));
-    array_pop($parts);
-    $skip = ($parts[0] ?? '') === 'Shared' ? 2 : 1;
-    $inside = array_slice($parts, $skip);
-    return clean_path($inside ? implode('/', $inside) : (string)end($parts));
+// Plain "lychee" on a file: an album named after the file's folder
+function folder_name(string $fileHref): string {
+    return clean_path(basename(dirname(rawurldecode($fileHref))));
+}
+
+// Plain "lychee" on a folder: an album named after it, its subfolders as sub-albums
+function folder_album(string $folderHref, string $fileHref): string {
+    $dir = rtrim(rawurldecode($folderHref), '/');
+    $file = rawurldecode($fileHref);
+    $sub = str_starts_with($file, "$dir/") ? dirname(substr($file, strlen($dir) + 1)) : '.';
+    return clean_path(basename($dir) . ($sub !== '.' ? "/$sub" : ''));
 }
 
 // --- Lychee API ---
@@ -246,14 +250,38 @@ function file_meta(string $f): array {
     return [mb_substr($pick(['Title', 'ObjectName']), 0, 100), mb_substr($pick(['Description', 'ImageDescription', 'Caption-Abstract']), 0, 1000)];
 }
 
-// Returns the file to upload: the original, or a JPEG copy when it's too big or an unusual format
+// Real type from the first bytes. ImageMagick must never guess: PostScript/PDF would reach Ghostscript.
+function sniff(string $f): ?string {
+    $h = (string)file_get_contents($f, false, null, 0, 16);
+    if (strncmp($h, "\xFF\xD8\xFF", 3) === 0) return 'jpeg';
+    if (strncmp($h, "\x89PNG", 4) === 0) return 'png';
+    if (strncmp($h, 'GIF8', 4) === 0) return 'gif';
+    if (substr($h, 0, 4) === 'RIFF' && substr($h, 8, 4) === 'WEBP') return 'webp';
+    if (strncmp($h, "II*\0", 4) === 0 || strncmp($h, "MM\0*", 4) === 0) return 'tiff';
+    if (substr($h, 4, 4) === 'ftyp') {
+        $brand = substr($h, 8, 4);
+        if (in_array($brand, ['heic', 'heix', 'heim', 'heis', 'mif1', 'msf1'], true)) return 'heic';
+        if ($brand === 'avif') return 'avif';
+        return 'video';
+    }
+    return null;
+}
+
+// Returns the file to upload, always without GPS: the download itself, or a JPEG copy when it's
+// too big or not JPEG/PNG/GIF/WebP. Everything else in the metadata (dates, captions, ICC) is kept.
 function prepare(string $src, string $mime): string {
     global $cfg;
-    if (str_starts_with($mime, 'video/')) return $src;
+    $type = sniff($src);
+    if (str_starts_with($mime, 'video/')) {
+        if ($type !== 'video') throw new SkipFile('not a recognised video file');
+        return strip_gps($src);
+    }
+    if ($type === null || $type === 'video') throw new SkipFile('not a recognised image file');
     $info = @getimagesize($src);
-    $simple = $info && in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF, IMAGETYPE_WEBP], true);
-    if ($simple && max($info[0], $info[1]) <= $cfg['max_edge']) return $src;
-    $im = new Imagick($src . '[0]');
+    $simple = in_array($type, ['jpeg', 'png', 'gif', 'webp'], true) && $info;
+    if ($simple && max($info[0], $info[1]) <= $cfg['max_edge']) return strip_gps($src);
+    $im = new Imagick();
+    $im->readImage("$type:$src" . '[0]'); // decoder forced by the sniffed type
     if (max($im->getImageWidth(), $im->getImageHeight()) > $cfg['max_edge']) {
         $im->getImageWidth() >= $im->getImageHeight()
             ? $im->resizeImage($cfg['max_edge'], 0, Imagick::FILTER_LANCZOS, 1)
@@ -264,13 +292,22 @@ function prepare(string $src, string $mime): string {
     $out = "$src.jpg";
     $im->writeImage($out);
     $im->clear();
-    // Keep all metadata (dates, GPS, captions, ICC) from the original
     run(['exiftool', '-q', '-q', '-m', '-overwrite_original', '-tagsFromFile', $src, '-all:all', '-icc_profile',
          '--ExifImageWidth', '--ExifImageHeight', '--ThumbnailImage', '--PreviewImage', $out]);
     if (!$simple) { // HEIC/AVIF decoders already apply the rotation to the pixels
         run(['exiftool', '-q', '-q', '-m', '-overwrite_original', '-Orientation#=1', $out]);
     }
-    return $out;
+    return strip_gps($out);
+}
+
+// Location stays in Nextcloud only: remove every GPS tag from the copy sent to Lychee, then check
+function strip_gps(string $f): string {
+    [$rc, , $err] = run(['exiftool', '-q', '-q', '-m', '-overwrite_original', '-gps:all=', '-xmp:GPS*=',
+        '-Keys:GPSCoordinates=', '-ItemList:GPSCoordinates=', '-UserData:GPSCoordinates=', $f]);
+    if ($rc !== 0) throw new RuntimeException("removing GPS failed: $err");
+    [, $left] = run(['exiftool', '-q', '-q', '-m', '-s3', '-n', '-GPSLatitude', '-GPSCoordinates', '-GPSPosition', $f]);
+    if (trim($left) !== '') throw new RuntimeException('GPS still present after removal');
+    return $f;
 }
 
 function upload(string $file, string $name, string $albumId, int $mtime, string $title, string $desc): string {
@@ -329,7 +366,7 @@ if ($hasSchema) {
 function is_settled(int $fileid, string $path): bool {
     global $state;
     $s = $state["$fileid|$path"] ?? null;
-    return $s && ($s['status'] === 'done' || (int)$s['attempts'] >= MAX_ATTEMPTS);
+    return $s && (in_array($s['status'], ['done', 'skipped'], true) || (int)$s['attempts'] >= MAX_ATTEMPTS);
 }
 function record(int $fileid, string $path, string $status, ?string $photo, ?string $error, string $href): void {
     global $pdo, $cfg, $state;
@@ -352,7 +389,8 @@ $tagged = 0;
 foreach ($tags as $id => $name) {
     if (!($rule = tag_rule($name))) continue;
     $items = nc_tagged($id);
-    $files = array_values(array_filter($items, 'is_media'));
+    $files = []; // [file, album path]
+    foreach (array_filter($items, 'is_media') as $f) $files[] = [$f, $rule[0] === 'mirror' ? folder_name($f['href']) : $rule[1]];
     $folders = array_values(array_filter($items, fn($i) => $i['folder']));
     $listed = 0;
     foreach ($folders as $d) {
@@ -368,14 +406,14 @@ foreach ($tags as $id => $name) {
         $listed++;
         $folderKeys[$fkey] = [$d['etag'], []];
         foreach ($media as $m) {
-            $files[] = $m;
-            $folderKeys[$fkey][1][] = $m['fileid'] . '|' . ($rule[0] === 'mirror' ? mirror_path($m['href']) : $rule[1]);
+            $path = $rule[0] === 'mirror' ? folder_album($d['href'], $m['href']) : $rule[1];
+            $files[] = [$m, $path];
+            $folderKeys[$fkey][1][] = $m['fileid'] . '|' . $path;
         }
     }
     logm("tag \"$name\": " . count(array_filter($items, 'is_media')) . ' file(s), ' . count($folders) . " folder(s), $listed listed");
-    foreach ($files as $f) {
+    foreach ($files as [$f, $path]) {
         $tagged++;
-        $path = $rule[0] === 'mirror' ? mirror_path($f['href']) : $rule[1];
         if ($path === '' || is_settled($f['fileid'], $path)) continue;
         $work[$path][$f['fileid']] = $f;
     }
@@ -387,7 +425,7 @@ if ($cfg['dry']) {
     foreach (array_slice($work, 0, 15, true) as $path => $files) logm("  would upload " . count($files) . " to \"$path\"");
 }
 
-$n = ['uploaded' => 0, 'copied' => 0, 'failed' => 0];
+$n = ['uploaded' => 0, 'copied' => 0, 'skipped' => 0, 'failed' => 0];
 $stop = false;
 foreach ($work as $path => $files) {
     if ($stop) break;
@@ -410,8 +448,10 @@ foreach ($work as $path => $files) {
                 $n['copied']++;
                 continue;
             }
+            if ($f['size'] > $cfg['max_bytes']) throw new SkipFile('larger than ' . ($cfg['max_bytes'] >> 20) . ' MB');
             $fh = fopen($tmp, 'wb');
-            [$code] = nc('GET', $f['href'], null, [], [CURLOPT_RETURNTRANSFER => false, CURLOPT_FILE => $fh]);
+            [$code] = nc('GET', $f['href'], null, [], [CURLOPT_RETURNTRANSFER => false, CURLOPT_FILE => $fh,
+                CURLOPT_MAXFILESIZE_LARGE => $cfg['max_bytes']]);
             fclose($fh);
             if ($code !== 200) throw new RuntimeException("download: HTTP $code");
             [$title, $desc] = file_meta($tmp);
@@ -423,6 +463,10 @@ foreach ($work as $path => $files) {
             record($f['fileid'], $path, 'done', $photo, null, $f['href']);
             if ($photo !== '') $photoOf[$f['fileid']] = $photo;
             $n['uploaded']++;
+        } catch (SkipFile $e) {
+            record($f['fileid'], $path, 'skipped', null, $e->getMessage(), $f['href']);
+            logm('skipped: ' . basename(rawurldecode($f['href'])) . ': ' . $e->getMessage());
+            $n['skipped']++;
         } catch (Throwable $e) {
             record($f['fileid'], $path, 'failed', null, mb_substr($e->getMessage(), 0, 300), $f['href']);
             logm('failed: ' . basename(rawurldecode($f['href'])) . " -> \"$path\": " . $e->getMessage());
@@ -450,5 +494,5 @@ foreach ($folderKeys as $fkey => [$etag, $keys]) {
     $saved++;
 }
 if ($folderKeys) logm("folders complete: $saved of " . count($folderKeys) . ' listed');
-logm("done: uploaded {$n['uploaded']}, copied {$n['copied']}, failed {$n['failed']}, albums created " . count($created)
+logm("done: uploaded {$n['uploaded']}, copied {$n['copied']}, skipped {$n['skipped']}, failed {$n['failed']}, albums created " . count($created)
     . ($stop ? ', stopped at the time/file limit (continues next run)' : '') . ', ' . (time() - $started) . 's');
