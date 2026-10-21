@@ -118,3 +118,4 @@ skipList:
 automergeUntested:
   - clusters/main/kubernetes/apps/cloudflared/app
   - clusters/main/kubernetes/apps/tailscale/app
+  - clusters/main/kubernetes/apps/k8tz/app
