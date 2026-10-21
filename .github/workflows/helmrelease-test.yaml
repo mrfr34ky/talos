@@ -14,8 +14,9 @@ on:
         type: string
   pull_request:
 
+# Manual runs for different HelmReleases on the same branch don't cancel each other
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.helmrelease }}
   cancel-in-progress: true
 
 permissions:
