@@ -29,7 +29,7 @@
           "!/siderolabs/", "!/flux-operator/", "!/flux-instance/", "!/longhorn/", "!/cilium/",
           "!/k3s-io/", "!/k3d-io/", "!/metallb/", "!/volsync/", "!/tuppr/", "!/gatus/", "!/blocky/",
           "!/kromgo/", "!/metrics-server/", "!/node-feature-discovery/",
-          "!/traefik/", "!/cert-manager/", "!/cloudnative-pg/", "!/tailscale/", "!/cloudflared/"
+          "!/traefik/", "!/cert-manager/", "!/cloudnative-pg/"
         ],
         "addLabels": ["automerge"]
       },
@@ -46,11 +46,11 @@
         "addLabels": ["needs-manual-merge"]
       },
       {
-        "description": ["Label patch updates for auto-merge, except Talos, Flux, the CI cluster, tailscale, cloudflared and CloudNativePG"],
+        "description": ["Label patch updates for auto-merge, except Talos, Flux, the CI cluster and CloudNativePG"],
         "matchUpdateTypes": ["patch"],
         "matchPackageNames": [
           "!/siderolabs/", "!/flux-operator/", "!/flux-instance/", "!/k3s-io/", "!/k3d-io/",
-          "!/tailscale/", "!/cloudflared/", "!/cloudnative-pg/"
+          "!/cloudnative-pg/"
         ],
         "addLabels": ["automerge"]
       },
@@ -62,21 +62,14 @@
         "addLabels": ["needs-manual-merge"]
       },
       {
-        "description": ["Label digest and pin updates for auto-merge, except Talos/Kubernetes, the CI cluster, tailscale, cloudflared and CloudNativePG"],
+        "description": ["Label digest and pin updates for auto-merge, except Talos/Kubernetes, the CI cluster and CloudNativePG"],
         "matchUpdateTypes": ["digest", "pin", "pinDigest"],
-        "matchPackageNames": ["!/siderolabs/", "!/k3s-io/", "!/k3d-io/", "!/tailscale/", "!/cloudflared/", "!/cloudnative-pg/"],
+        "matchPackageNames": ["!/siderolabs/", "!/k3s-io/", "!/k3d-io/", "!/cloudnative-pg/"],
         "addLabels": ["automerge"]
       },
       // ---------------------------------------------------------------------------------------------
       // App-specific blocks (applied after the policy above, so they win)
       // ---------------------------------------------------------------------------------------------
-      {
-        // HelmRelease Test skips them (skipList in ci/.config.yaml), so a green check means untested
-        "description": ["tailscale and cloudflared can't be tested in CI: manual merge for any update"],
-        "matchPackageNames": ["/tailscale/", "/cloudflared/"],
-        "automerge": false,
-        "addLabels": ["needs-manual-merge"]
-      },
       {
         // All 9 databases back up through spec.backup.barmanObjectStore (set by the TrueCharts cnpg
         // template), which CloudNativePG removes in 1.31. Migrate to the Barman Cloud Plugin first.
@@ -87,24 +80,6 @@
         "prBodyNotes": [
           "⚠️ **CloudNativePG 1.31 removes the built-in Barman Cloud backups** (`spec.backup.barmanObjectStore`), which all CNPG databases in this cluster use for their nightly S3 backups and restores. Before merging an update that brings the operator to 1.31 or later, move the clusters to the Barman Cloud Plugin, or the database backups stop."
         ]
-      },
-      {
-        "description": ["Block automerge for Authentik"],
-        "matchUpdateTypes": ["minor","major","patch"],
-        "automerge": false,
-        "dependencyDashboardApproval": true,
-        "matchPackageNames": ["oci.trueforge.org/truecharts/authentik"],
-        "labels": ["type/minor","type/major","type/patch","needs-manual-merge"],
-        "addLabels": null
-      },
-      {
-        "description": ["Block automerge for Nextcloud"],
-        "matchUpdateTypes": ["minor","major","patch"],
-        "automerge": false,
-        "dependencyDashboardApproval": true,
-        "matchPackageNames": ["oci.trueforge.org/truecharts/nextcloud"],
-        "labels": ["type/minor","type/major","type/patch","needs-manual-merge"],
-        "addLabels": null
       },
       // ---------------------------------------------------------------------------------------------
       // Talos and Kubernetes: NEVER auto-merge, whatever the update type. Must stay last so no rule

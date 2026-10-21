@@ -204,6 +204,23 @@ jobs:
 
           echo "skipped=${#skipped[@]}" >> "$GITHUB_OUTPUT"
 
+          # Skipped releases block auto-merge, except those in automergeUntested (ci/.config.yaml)
+          mapfile -t automerge_untested < <(yq -r '.automergeUntested[]?' "$SKIP_FILE" 2>/dev/null)
+          blocking=0
+          for file in "${skipped[@]}"; do
+            allowed=false
+            for entry in "${automerge_untested[@]}"; do
+              if [ "$(dirname "$file")" = "$entry" ]; then
+                allowed=true
+                break
+              fi
+            done
+            if [ "$allowed" = false ]; then
+              blocking=$((blocking + 1))
+            fi
+          done
+          echo "skipped_blocking=$blocking" >> "$GITHUB_OUTPUT"
+
           # ---------- Matrix handling ----------
           if [ ${#filtered[@]} -eq 0 ]; then
             echo "matrix=[]" >> "$GITHUB_OUTPUT"
@@ -220,11 +237,11 @@ jobs:
 
       # A skipped HelmRelease was never installed, so a green test-summary would be misleading.
       # automerge.yaml never merges PRs with this label. If labelling fails, this job fails and
-      # the PR stays unmerged too.
+      # the PR stays unmerged too. Entries in automergeUntested are exempt by choice.
       - name: Mark PRs with untested HelmReleases for a manual merge
         if: >-
           github.event_name == 'pull_request' &&
-          steps.set.outputs.skipped != '' && steps.set.outputs.skipped != '0'
+          steps.set.outputs.skipped_blocking != '' && steps.set.outputs.skipped_blocking != '0'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}

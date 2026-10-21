@@ -4,7 +4,8 @@
 # dummyEnv: placeholder values for the ${VARS} that Flux normally substitutes from cluster-settings.
 #   Formats matter (URLs, IPs, CIDRs); secrets can be any string. Unlisted vars stay literal ${VAR}.
 # skipList: HelmRelease directories that can't run in a throwaway k3d cluster. A PR that changes
-#   one gets the "needs-manual-merge" label and is never auto-merged (nothing was tested).
+#   one gets the "needs-manual-merge" label and is never auto-merged (nothing was tested),
+#   unless the directory is also listed in automergeUntested.
 
 canaryHelmRelease: clusters/main/kubernetes/observability/kromgo/app/helm-release.yaml
 
@@ -110,5 +111,10 @@ skipList:
   - clusters/main/kubernetes/flux-system/flux-operator/app
   - clusters/main/kubernetes/apps/k8tz/app
   # Need real external credentials to start
+  - clusters/main/kubernetes/apps/cloudflared/app
+  - clusters/main/kubernetes/apps/tailscale/app
+
+# skipList entries whose updates are auto-merged anyway, untested (major updates stay manual)
+automergeUntested:
   - clusters/main/kubernetes/apps/cloudflared/app
   - clusters/main/kubernetes/apps/tailscale/app
