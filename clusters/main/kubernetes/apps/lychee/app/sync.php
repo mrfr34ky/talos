@@ -23,6 +23,7 @@ $cfg = [
     'budget'    => (int)(getenv('TIME_BUDGET') ?: 480),
     'max_files' => (int)(getenv('MAX_FILES') ?: 0),
     'max_bytes' => (int)(getenv('MAX_FILE_MB') ?: 2048) * 1024 * 1024,
+    'share_hours' => (int)(getenv('SHARE_HOURS') ?: 24),
     'dry'       => getenv('DRY') === '1',
     'tmp'       => sys_get_temp_dir(),
 ];
@@ -379,6 +380,29 @@ function record(int $fileid, string $path, string $status, ?string $photo, ?stri
                      attempts = ncsync.files.attempts + excluded.attempts, last_error = excluded.last_error,
                      href = excluded.href, updated_at = now()')
         ->execute([$fileid, $path, $status, $photo, $status === 'failed' ? 1 : 0, $error, $href]);
+}
+
+// --- expiring shares: public albums go private SHARE_HOURS after they were shared, unless the
+// album description starts with #keep. Lychee stores share times in UTC.
+$expire = $pdo->prepare("select b.id, b.title, b.description, b.is_nsfw, p.is_link_required, p.grants_download,
+        p.grants_full_photo_access, p.created_at
+    from access_permissions p join base_albums b on b.id = p.base_album_id
+    where p.user_id is null and p.user_group_id is null
+      and p.created_at < (now() at time zone 'UTC') - make_interval(hours => ?)");
+$expire->execute([$cfg['share_hours']]);
+foreach ($expire->fetchAll(PDO::FETCH_ASSOC) as $a) {
+    if (preg_match('/^\s*#keep\b/i', (string)$a['description'])) continue;
+    if ($cfg['dry']) { logm("would end share: \"{$a['title']}\" (shared {$a['created_at']} UTC)"); continue; }
+    try {
+        ly('POST', 'Album::updateProtectionPolicy', [
+            'album_id' => $a['id'], 'is_public' => false, 'is_link_required' => (bool)$a['is_link_required'],
+            'is_nsfw' => (bool)$a['is_nsfw'], 'grants_download' => (bool)$a['grants_download'],
+            'grants_full_photo_access' => (bool)$a['grants_full_photo_access'], 'grants_upload' => false,
+        ]);
+        logm("share ended: \"{$a['title']}\" (shared {$a['created_at']} UTC)");
+    } catch (Throwable $e) {
+        logm("ending share \"{$a['title']}\": " . $e->getMessage());
+    }
 }
 
 // --- main ---

@@ -141,6 +141,8 @@ spec:
                 MAX_EDGE: "3840"
                 JPEG_QUALITY: "85"
                 MAX_FILE_MB: "2048"
+                # Public albums go private after this, unless their description starts with #keep
+                SHARE_HOURS: "24"
               probes:
                 liveness:
                   enabled: false
