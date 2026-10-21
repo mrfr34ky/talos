@@ -86,6 +86,8 @@ spec:
                 SKIP_PERMISSIONS_CHECKS: "yes"
                 # Default 30 s cut big album deletes off midway, leaving the files behind
                 LYCHEE_MAX_EXECUTION_TIME: "300"
+                # Passkey (WebAuthn) or API token only; set "false" to get password login back
+                DISABLE_BASIC_AUTH: "true"
       # Nextcloud tags -> Lychee albums, see sync.php
       sync:
         enabled: true
