@@ -3,8 +3,8 @@
     "packageRules": [
       // ---------------------------------------------------------------------------------------------
       // Auto-merge policy. Renovate never merges by itself, it only labels PRs "automerge".
-      // .github/workflows/automerge.yaml merges those after the "HelmRelease Test" passed, one at a
-      // time and at least 10 minutes apart. Later rules win over earlier ones; addLabels add up.
+      // .github/workflows/automerge.yaml merges those as soon as the "HelmRelease Test" passed.
+      // Later rules win over earlier ones; addLabels add up.
       // Every rule that keeps a PR manual also labels it "needs-manual-merge", which the Automerge
       // workflow refuses even if a PR somehow carries "automerge" too.
       // ---------------------------------------------------------------------------------------------

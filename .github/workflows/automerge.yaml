@@ -1,20 +1,19 @@
 ---
 # The only thing that merges Renovate PRs (Renovate itself has automerge: false, see
 # .github/special_talos.json5; it only labels PRs "automerge").
-# Merges one PR at a time, oldest first, and only when main has had no change for MERGE_SPACING_MINUTES,
-# so app upgrades don't all restart at once on the single node.
+# Merges every qualifying PR in one run, oldest first, without waiting between merges.
 # A PR qualifies when "HelmRelease Test" (test-summary) passed on its current commit; only that exact
 # commit is merged (--match-head-commit). Never merged: PRs labelled system-upgrade (Talos/Kubernetes)
 # or needs-manual-merge (changes a HelmRelease that CI can't test, set by helmrelease-test.yaml).
 name: Automerge
 
 on:
-  # Right after a test finishes, if main has been quiet long enough
+  # Right after a test finishes
   workflow_run:
     workflows: ["HelmRelease Test"]
     types:
       - completed
-  # Picks up the next waiting PR once the spacing has passed
+  # Catches anything a workflow_run missed
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
@@ -32,21 +31,12 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - name: Merge the oldest tested PR
+      - name: Merge all tested PRs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          MERGE_SPACING_MINUTES: 10
         run: |
           set -euo pipefail
-
-          # Any change to main counts (also manual pushes), as Flux deploys every one of them
-          last_change=$(gh api "repos/$GH_REPO/commits/main" --jq '.commit.committer.date')
-          quiet_for=$(( ($(date -u +%s) - $(date -u -d "$last_change" +%s)) / 60 ))
-          if [ "$quiet_for" -lt "$MERGE_SPACING_MINUTES" ]; then
-            echo "⏳ Last change to main was $quiet_for min ago, next merge after $MERGE_SPACING_MINUTES min"
-            exit 0
-          fi
 
           # Open, non-draft PRs from this repository labelled automerge, oldest first,
           # without system-upgrade or needs-manual-merge
@@ -63,6 +53,7 @@ jobs:
             exit 0
           fi
 
+          merged=0
           for candidate in "${candidates[@]}"; do
             read -r number sha <<<"$candidate"
 
@@ -77,10 +68,11 @@ jobs:
             fi
 
             if gh pr merge "$number" --squash --match-head-commit "$sha"; then
-              echo "✅ Merged PR #$number at $sha, the next one waits $MERGE_SPACING_MINUTES min"
-              exit 0
+              echo "✅ Merged PR #$number at $sha"
+              merged=$((merged + 1))
+            else
+              echo "⚠️ PR #$number could not be merged (conflict, or it moved on), skipping it"
             fi
-            echo "⚠️ PR #$number could not be merged (conflict, or it moved on), trying the next one"
           done
 
-          echo "ℹ️ No PR can be merged right now"
+          echo "ℹ️ Merged $merged PR(s) in this run"
