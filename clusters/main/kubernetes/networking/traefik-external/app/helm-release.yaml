@@ -194,6 +194,12 @@ spec:
               # Never block the LAN
               clientTrustedIPs:
                 - 192.168.1.0/24
+              # WAF: every request is also checked by CrowdSec AppSec. Fails closed when AppSec
+              # errors or is unreachable (it runs 2 replicas); bodies are inspected up to 10 MB.
+              crowdsecAppsecEnabled: true
+              crowdsecAppsecHost: crowdsec-appsec-service.crowdsec.svc.cluster.local:7422
+              crowdsecAppsecFailureBlock: true
+              crowdsecAppsecUnreachableBlock: true
 
     # Prometheus metrics (entrypoint "metrics", port 9100) on their own in-cluster Service,
     # scraped through a ServiceMonitor for the Traefik dashboard in Grafana
