@@ -31,6 +31,17 @@ const MAX_ATTEMPTS = 3;
 $started = time();
 
 class SkipFile extends RuntimeException {} // not retried: too big or not a recognised media file
+class ServiceUnavailable extends RuntimeException {} // Nextcloud, Lychee or the DB down: end the run, retry next time
+
+// A restart of Nextcloud or Lychee ends the run cleanly (exit 0) instead of failing the job
+set_exception_handler(function (Throwable $e): void {
+    if ($e instanceof ServiceUnavailable) {
+        fwrite(STDOUT, date('H:i:s') . ' unavailable, skipping this run: ' . $e->getMessage() . "\n");
+        exit(0);
+    }
+    fwrite(STDERR, (string)$e . "\n");
+    exit(1);
+});
 
 function logm(string $s): void { fwrite(STDOUT, date('H:i:s') . " $s\n"); }
 
@@ -41,8 +52,11 @@ function http(string $method, string $url, array $opt): array {
         CURLOPT_CONNECTTIMEOUT => 10, CURLOPT_TIMEOUT => 600,
     ]);
     $body = curl_exec($ch);
-    if ($body === false) throw new RuntimeException("$method " . parse_url($url, PHP_URL_PATH) . ': ' . curl_error($ch));
-    return [(int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE), (string)$body];
+    $where = "$method " . strtok((string)parse_url($url, PHP_URL_PATH), '?');
+    if ($body === false) throw new ServiceUnavailable("$where: " . curl_error($ch));
+    $code = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    if (in_array($code, [502, 503, 504], true)) throw new ServiceUnavailable("$where: HTTP $code");
+    return [$code, (string)$body];
 }
 
 // --- Nextcloud (in-cluster service; the Host header makes it a trusted domain) ---
@@ -337,8 +351,12 @@ function upload(string $file, string $name, string $albumId, int $mtime, string 
 }
 
 // --- state (Lychee's Postgres, schema ncsync) ---
-$pdo = new PDO("pgsql:host={$cfg['db_host']};port=5432;dbname={$cfg['db_name']}", $cfg['db_user'], $cfg['db_pass'],
-    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+try {
+    $pdo = new PDO("pgsql:host={$cfg['db_host']};port=5432;dbname={$cfg['db_name']}", $cfg['db_user'], $cfg['db_pass'],
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+} catch (PDOException $e) {
+    throw new ServiceUnavailable('database: ' . $e->getMessage());
+}
 $hasSchema = (bool)$pdo->query("select 1 from information_schema.tables where table_schema='ncsync' and table_name='files'")->fetchColumn();
 if (!$hasSchema && !$cfg['dry']) {
     $pdo->exec('CREATE SCHEMA IF NOT EXISTS ncsync');
@@ -400,6 +418,8 @@ foreach ($expire->fetchAll(PDO::FETCH_ASSOC) as $a) {
             'grants_full_photo_access' => (bool)$a['grants_full_photo_access'], 'grants_upload' => false,
         ]);
         logm("share ended: \"{$a['title']}\" (shared {$a['created_at']} UTC)");
+    } catch (ServiceUnavailable $e) {
+        throw $e;
     } catch (Throwable $e) {
         logm("ending share \"{$a['title']}\": " . $e->getMessage());
     }
@@ -423,6 +443,8 @@ foreach ($tags as $id => $name) {
         if (time() - $started > $cfg['budget'] / 2) continue; // leave time for uploads; the rest is listed next run
         try {
             $media = nc_folder_media($d['href']);
+        } catch (ServiceUnavailable $e) {
+            throw $e;
         } catch (Throwable $e) {
             logm('folder ' . rawurldecode($d['href']) . ': ' . $e->getMessage());
             continue;
@@ -455,6 +477,8 @@ foreach ($work as $path => $files) {
     if ($stop) break;
     try {
         $albumId = ensure_album($path);
+    } catch (ServiceUnavailable $e) {
+        throw $e;
     } catch (Throwable $e) {
         logm("album \"$path\": " . $e->getMessage());
         continue;
@@ -491,6 +515,8 @@ foreach ($work as $path => $files) {
             record($f['fileid'], $path, 'skipped', null, $e->getMessage(), $f['href']);
             logm('skipped: ' . basename(rawurldecode($f['href'])) . ': ' . $e->getMessage());
             $n['skipped']++;
+        } catch (ServiceUnavailable $e) {
+            throw $e; // not this file's fault: no failed attempt recorded
         } catch (Throwable $e) {
             record($f['fileid'], $path, 'failed', null, mb_substr($e->getMessage(), 0, 300), $f['href']);
             logm('failed: ' . basename(rawurldecode($f['href'])) . " -> \"$path\": " . $e->getMessage());
