@@ -92,11 +92,12 @@ This cluster assumes a **simple and reliable home network environment**.
 Everything that is reachable from the internet is protected by **[CrowdSec](https://www.crowdsec.net/)**:
 
 ~~~text
-Internet → Cloudflare (WAF) → Cloudflare Tunnel → traefik-external + CrowdSec bouncer → app
+Internet → Cloudflare (WAF) → Cloudflare Tunnel → traefik-external + CrowdSec bouncer + CrowdSec WAF → app
 ~~~
 
 - The CrowdSec bouncer (a Traefik plugin) runs on every route of `traefik-external`
-- Fail-closed: if the bouncer can't load, Traefik drops the public routes instead of serving them unprotected
+- Every request is also checked by the CrowdSec AppSec WAF: virtual patches for known CVEs plus generic attack rules, updated from the CrowdSec Hub. Matches are blocked, and IPs that keep trying get banned
+- Fail-closed: if the bouncer can't load or the WAF can't be reached, Traefik drops the public routes instead of serving them unprotected; the WAF runs two replicas
 - The CrowdSec community blocklist blocks known bad IPs before they ever reach a login page; the instance is enrolled in the CrowdSec Console
 
 ### Network policies
@@ -122,7 +123,7 @@ Namespaces alone don't stop pods from reaching each other, so the apps get a `ne
 | **GitHub Actions**           | Installs every changed HelmRelease into a throwaway k3d cluster before an update is merged                 |
 | **SOPS**                     | Encryption of all secrets and credentials stored in Git, integrated with FluxCD                            |
 | **Clustertool**              | Bootstrap tool from TrueForge used to build the basic cluster structure and setup                          |
-| **CrowdSec**                 | Detects and blocks attacks on the public apps                                                              |
+| **CrowdSec**                 | Detects and blocks attacks on the public apps, with a WAF that virtually patches known CVEs                |
 | **Longhorn + VolSync**       | Block storage for app data, with nightly restic backups offsite                                            |
 | **kube-prometheus-stack + Gatus** | Metrics and alerts, plus the public status page                                                       |
 | **Grafana**                  | Dashboards for the cluster                                                                                 |
