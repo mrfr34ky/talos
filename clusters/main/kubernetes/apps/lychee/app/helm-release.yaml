@@ -152,7 +152,21 @@ spec:
                   enabled: false
                 startup:
                   enabled: false
+    configmap:
+      php-hardening:
+        enabled: true
+        data:
+          # Upload progress is the entry point of CVE-2026-109618; Lychee doesn't use it
+          zz-upload-progress.ini: |
+            session.upload_progress.enabled = Off
     persistence:
+      php-hardening:
+        enabled: true
+        type: configmap
+        objectName: php-hardening
+        mountPath: /usr/local/etc/php/conf.d/zz-upload-progress.ini
+        subPath: zz-upload-progress.ini
+        readOnly: true
       uploads:
         enabled: true
         type: nfs

@@ -74,7 +74,21 @@ spec:
                 # The override "restores" the permissions of the wp-config.php symlink (777) onto the
                 # real file; this runs after it and sets the file back to 440 (wp-content 775/664).
                 WORDPRESS_RESET_DATA_PERMISSIONS: "yes"
+    configmap:
+      php-hardening:
+        enabled: true
+        data:
+          # Upload progress is the entry point of CVE-2026-109618; WordPress doesn't use it
+          zz-upload-progress.ini: |
+            session.upload_progress.enabled = Off
     persistence:
+      php-hardening:
+        enabled: true
+        type: configmap
+        objectName: php-hardening
+        mountPath: /opt/bitnami/php/etc/conf.d/zz-upload-progress.ini
+        subPath: zz-upload-progress.ini
+        readOnly: true
       # wp-content (themes, plugins, uploads) and wp-config.php
       config:
         volsync:

@@ -1,5 +1,5 @@
 ---
-# LAPI (the decisions API): only the Traefik bouncer and CrowdSec's own agent; metrics only for Prometheus
+# LAPI (the decisions API): only the Traefik bouncer and CrowdSec's own agent and AppSec; metrics only for Prometheus
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -21,9 +21,45 @@ spec:
             matchLabels:
               k8s-app: crowdsec
               type: agent
+        - podSelector:
+            matchLabels:
+              k8s-app: crowdsec
+              type: appsec
       ports:
         - protocol: TCP
           port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-prometheus-stack
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 6060
+---
+# AppSec (WAF): requests only from the traefik-external bouncer; metrics only for Prometheus
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: crowdsec-appsec-ingress
+  namespace: crowdsec
+spec:
+  podSelector:
+    matchLabels:
+      k8s-app: crowdsec
+      type: appsec
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik-external
+      ports:
+        - protocol: TCP
+          port: 7422
     - from:
         - namespaceSelector:
             matchLabels:
