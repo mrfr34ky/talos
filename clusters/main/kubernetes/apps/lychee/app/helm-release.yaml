@@ -156,16 +156,17 @@ spec:
       php-hardening:
         enabled: true
         data:
-          # Upload progress is the entry point of CVE-2026-109618; Lychee doesn't use it
-          zz-upload-progress.ini: |
+          # CVE-2026-109619 (upload progress) and CVE-2026-109618 (deeply nested input); Lychee needs neither
+          zz-php-hardening.ini: |
             session.upload_progress.enabled = Off
+            max_input_nesting_level = 10
     persistence:
       php-hardening:
         enabled: true
         type: configmap
         objectName: php-hardening
-        mountPath: /usr/local/etc/php/conf.d/zz-upload-progress.ini
-        subPath: zz-upload-progress.ini
+        mountPath: /usr/local/etc/php/conf.d/zz-php-hardening.ini
+        subPath: zz-php-hardening.ini
         readOnly: true
       uploads:
         enabled: true
