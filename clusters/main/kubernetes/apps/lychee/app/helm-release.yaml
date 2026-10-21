@@ -91,7 +91,6 @@ spec:
         enabled: true
         primary: false
         type: CronJob
-        suspend: true
         schedule: "*/10 * * * *"
         backoffLimit: 1
         activeDeadlineSeconds: 570
