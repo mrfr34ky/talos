@@ -143,6 +143,17 @@ spec:
          - discord
         on_success: break
         ---
+        # IPs the WAF banned (2+ distinct vpatch rules within a minute, or repeated native rules)
+        name: waf_ip_remediation
+        filters:
+         - Alert.Remediation == true && Alert.GetScope() == "Ip" && Alert.GetScenario() in ["crowdsecurity/appsec-vpatch", "crowdsecurity/appsec-native"]
+        decisions:
+         - type: ban
+           duration: 4h
+        notifications:
+         - discord
+        on_success: break
+        ---
         name: default_ip_remediation
         filters:
          - Alert.Remediation == true && Alert.GetScope() == "Ip"
@@ -184,12 +195,15 @@ spec:
               {{- $ip := "" -}}{{- $dur := "" -}}
               {{- range $d := $a.Decisions }}{{ $ip = trunc 64 $d.Value }}{{ $dur = trunc 32 $d.Duration }}{{ end -}}
               {{- $flag := "" -}}{{- if $a.Source.Cn }}{{ $flag = printf ":flag_%s: " (lower $a.Source.Cn) }}{{ end -}}
-              {{- $sites := list -}}{{- $paths := list -}}{{- $uas := list -}}{{- $users := list -}}
+              {{- $sites := list -}}{{- $paths := list -}}{{- $uas := list -}}{{- $users := list -}}{{- $rules := list -}}
               {{- $verbs := dict -}}{{- $codes := dict -}}
+              {{- $waf := hasPrefix "crowdsecurity/appsec" $a.Scenario -}}
               {{- range $e := $a.Events }}{{ range $m := $e.Meta -}}
                 {{- if eq $m.Key "traefik_router_name" }}{{ $sites = append $sites (trimSuffix "@kubernetes" $m.Value) }}{{ end -}}
-                {{- if and (eq $m.Key "service") (ne $m.Value "http") }}{{ $sites = append $sites $m.Value }}{{ end -}}
-                {{- if eq $m.Key "http_path" }}{{ $paths = append $paths (trunc 60 (replace "`" "'" $m.Value)) }}{{ end -}}
+                {{- if and (eq $m.Key "service") (not (has $m.Value (list "http" "appsec"))) }}{{ $sites = append $sites $m.Value }}{{ end -}}
+                {{- if eq $m.Key "target_host" }}{{ $sites = append $sites $m.Value }}{{ end -}}
+                {{- if eq $m.Key "rule_name" }}{{ $rules = append $rules (trimPrefix "crowdsecurity/" $m.Value) }}{{ end -}}
+                {{- if or (eq $m.Key "http_path") (and (eq $m.Key "target_uri") (not (hasPrefix "[" $m.Value))) }}{{ $paths = append $paths (trunc 60 (replace "`" "'" $m.Value)) }}{{ end -}}
                 {{- if eq $m.Key "http_user_agent" }}{{ $uas = append $uas (trunc 90 $m.Value) }}{{ end -}}
                 {{- if and (has $m.Key (list "target_user" "user")) $m.Value (ne $m.Value "-") }}{{ $users = append $users (trunc 40 $m.Value) }}{{ end -}}
                 {{- if eq $m.Key "http_verb" }}{{ $_ := set $verbs $m.Value (add1 (get $verbs $m.Value | default 0)) }}{{ end -}}
@@ -198,6 +212,8 @@ spec:
               {{- $fields := list -}}
               {{- $s := $sites | uniq -}}
               {{- if $s }}{{ $fields = append $fields (printf "{\"name\":\"Site\",\"value\":%s}" (toJson (join ", " $s))) }}{{ end -}}
+              {{- $r := $rules | uniq -}}
+              {{- if $r }}{{ $fields = append $fields (printf "{\"name\":\"WAF rules\",\"value\":%s}" (toJson (trunc 300 (join ", " $r)))) }}{{ end -}}
               {{- $src := list -}}
               {{- if $a.Source.Cn }}{{ $src = append $src $a.Source.Cn }}{{ end -}}
               {{- if $a.Source.AsNumber }}{{ $src = append $src (trim (printf "AS%s %s" $a.Source.AsNumber $a.Source.AsName)) }}{{ end -}}
@@ -212,7 +228,7 @@ spec:
               {{- if $u }}{{ $fields = append $fields (printf "{\"name\":\"User agent\",\"value\":%s}" (toJson (join "\n" (slice $u 0 (min 2 (len $u)))))) }}{{ end -}}
               {{- $us := $users | uniq -}}
               {{- if $us }}{{ $fields = append $fields (printf "{\"name\":\"Usernames tried\",\"value\":%s,\"inline\":true}" (toJson (join ", " (slice $us 0 (min 5 (len $us)))))) }}{{ end -}}
-              {"author":{"name":"CrowdSec · login attack blocked"},"color":15158332,
+              {"author":{"name":{{ if $waf }}"CrowdSec · WAF attack blocked"{{ else }}"CrowdSec · login attack blocked"{{ end }}},"color":{{ if $waf }}15105570{{ else }}15158332{{ end }},
               "title":{{ toJson (printf "%s%s banned for %s" $flag $ip $dur) }},
               "description":"`{{ $a.Scenario }}` · {{ $a.EventsCount }} events · <t:{{ unixEpoch (toDate "2006-01-02T15:04:05Z07:00" $a.StartAt) }}:T>–<t:{{ unixEpoch (toDate "2006-01-02T15:04:05Z07:00" $a.StopAt) }}:T>",
               "fields":[{{ join "," $fields }}],
