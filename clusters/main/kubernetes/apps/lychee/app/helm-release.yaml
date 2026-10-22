@@ -35,7 +35,7 @@ spec:
     image:
       repository: ghcr.io/lycheeorg/lychee
       pullPolicy: IfNotPresent
-      tag: v7.11.1@sha256:51d867c272c26d2a6a4c6a200e26ed888a35a7ad4652c1871953a85519a78eba
+      tag: v7.12.0@sha256:4bcaa1757ac1919a1cba19428a7a97628aecebee8b178778478a88c08d6312cb
     credentials:
       s3:
         type: s3
