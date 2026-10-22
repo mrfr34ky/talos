@@ -30,6 +30,11 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: cloudflared-values
+      valuesKey: CLOUDFLARED_TUNNEL_TOKEN
+      targetPath: workload.main.podSpec.containers.main.env.TUNNEL_TOKEN
   values:
     global:
       stopAll: false
@@ -37,10 +42,3 @@ spec:
     resources:
       requests:
         cpu: 10m    
-    workload:
-      main:
-        podSpec:
-          containers:
-            main:
-              env:
-                TUNNEL_TOKEN: "${CLOUDFLARED_TUNNEL_TOKEN}"
