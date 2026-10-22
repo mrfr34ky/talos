@@ -291,14 +291,20 @@ spec:
         - name: DISABLE_ONLINE_API
           value: "false"
         - name: ENROLL_KEY
-          value: "${CSKEY}"
+          valueFrom:
+            secretKeyRef:
+              name: crowdsec-values
+              key: CSKEY
         - name: ENROLL_INSTANCE_NAME
           value: "cluster"
         # Registers the "traefik" bouncer with this key at startup, so a fresh cluster
         # doesn't need the manual `cscli bouncers add`. Must match the key in the
         # traefik-external crowdsec middleware.
         - name: BOUNCER_KEY_traefik
-          value: "${CROWDSEC_BOUNCER_KEY}"
+          valueFrom:
+            secretKeyRef:
+              name: crowdsec-values
+              key: CROWDSEC_BOUNCER_KEY
         # Read by the Discord notification config (config.notifications.discord.yaml)
         - name: CROWDSEC_DISCORD_WEBHOOK
           valueFrom:
