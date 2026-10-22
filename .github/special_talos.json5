@@ -17,8 +17,9 @@
         "automerge": false
       },
       {
-        "description": ["Never auto-merge major updates"],
+        "description": ["Never auto-merge major updates (except Tracearr, see below)"],
         "matchUpdateTypes": ["major"],
+        "matchPackageNames": ["!/tracearr/"],
         "automerge": false,
         "addLabels": ["needs-manual-merge"]
       },
@@ -27,7 +28,7 @@
         "matchUpdateTypes": ["minor"],
         "matchPackageNames": [
           "!/siderolabs/", "!/flux-operator/", "!/flux-instance/", "!/longhorn/", "!/cilium/",
-          "!/k3s-io/", "!/k3d-io/", "!/metallb/", "!/volsync/", "!/tuppr/", "!/gatus/", "!/blocky/",
+          "!/k3s-io/", "!/k3d-io/", "!/metallb/", "!/volsync/", "!/gatus/", "!/blocky/",
           "!/kromgo/", "!/metrics-server/", "!/node-feature-discovery/",
           "!/traefik/", "!/cert-manager/", "!/cloudnative-pg/"
         ],
@@ -38,7 +39,7 @@
         "matchUpdateTypes": ["minor"],
         "matchPackageNames": [
           "/siderolabs/", "/flux-operator/", "/flux-instance/", "/longhorn/", "/cilium/",
-          "/k3s-io/", "/k3d-io/", "/metallb/", "/volsync/", "/tuppr/", "/gatus/", "/blocky/",
+          "/k3s-io/", "/k3d-io/", "/metallb/", "/volsync/", "/gatus/", "/blocky/",
           "/kromgo/", "/metrics-server/", "/node-feature-discovery/",
           "/traefik/", "/cert-manager/", "/cloudnative-pg/"
         ],
@@ -70,6 +71,12 @@
       // ---------------------------------------------------------------------------------------------
       // App-specific blocks (applied after the policy above, so they win)
       // ---------------------------------------------------------------------------------------------
+      {
+        "description": ["Tracearr: auto-merge major updates too (still tested in CI)"],
+        "matchPackageNames": ["/tracearr/"],
+        "matchUpdateTypes": ["major"],
+        "addLabels": ["automerge"]
+      },
       {
         // All 9 databases back up through spec.backup.barmanObjectStore (set by the TrueCharts cnpg
         // template), which CloudNativePG removes in 1.31. Migrate to the Barman Cloud Plugin first.

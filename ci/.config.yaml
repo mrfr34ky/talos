@@ -116,6 +116,8 @@ skipList:
 
 # skipList entries whose updates are auto-merged anyway, untested (major updates stay manual)
 automergeUntested:
+  - clusters/main/kubernetes/system/generic-device-plugin/app
+  - clusters/main/kubernetes/system/system-upgrade/tuppr/app
   - clusters/main/kubernetes/apps/cloudflared/app
   - clusters/main/kubernetes/apps/tailscale/app
   - clusters/main/kubernetes/apps/k8tz/app
