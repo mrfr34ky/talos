@@ -30,6 +30,51 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: authentik-values
+      valuesKey: S3URL
+      targetPath: credentials.s3.url
+    - kind: Secret
+      name: authentik-values
+      valuesKey: BUCKET
+      targetPath: credentials.s3.bucket
+    - kind: Secret
+      name: authentik-values
+      valuesKey: S3ID
+      targetPath: credentials.s3.accessKey
+    - kind: Secret
+      name: authentik-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.secretKey
+    - kind: Secret
+      name: authentik-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.encrKey
+    - kind: Secret
+      name: authentik-values
+      valuesKey: AUTHENTIK_CNPG_PWD
+      targetPath: cnpg.main.password
+    - kind: Secret
+      name: authentik-values
+      valuesKey: AUTHENTIK_REDIS_PWD
+      targetPath: redis.password
+    - kind: Secret
+      name: authentik-values
+      valuesKey: AUTHENTIK_PWD
+      targetPath: authentik.credentials.password
+    - kind: Secret
+      name: authentik-values
+      valuesKey: GMAIL_USER
+      targetPath: authentik.email.username
+    - kind: Secret
+      name: authentik-values
+      valuesKey: AUTHENTIK_SMTP_PWD
+      targetPath: authentik.email.password
+    - kind: Secret
+      name: authentik-values
+      valuesKey: GMAIL_USER
+      targetPath: authentik.email.from
   values:    
     global:
       stopAll: false
@@ -40,11 +85,6 @@ spec:
     credentials:
       s3:
         type: s3
-        url: "${S3URL}"
-        bucket: "${S3PREFIX}-authentik"
-        accessKey: "${S3ID}"
-        secretKey: "${S3KEY}"
-        encrKey: "${S3KEY}"
     persistence:
       media:
         volsync:
@@ -103,7 +143,6 @@ spec:
                 schedule: 28 23 * * *        
     cnpg:
       main:
-        password: ${AUTHENTIK_CNPG_PWD}
         cluster:
           singleNode: true
           # One Postgres pod instead of the chart's two: a replica on the same node adds
@@ -125,19 +164,13 @@ spec:
           method: object_store
           credentials: s3
           revision: "9"       
-    redis:
-      password: ${AUTHENTIK_REDIS_PWD}    
     authentik:
       credentials:
         email: ${DOMAIN_0_EMAIL}
-        password: ${AUTHENTIK_PWD}
       email:
         host: smtp.gmail.com
         port: 587
-        username: ${GMAIL_USER}
-        password: ${AUTHENTIK_SMTP_PWD}
         useTLS: true
-        from: ${GMAIL_USER}    
     ingress:
         main:
           enabled: true

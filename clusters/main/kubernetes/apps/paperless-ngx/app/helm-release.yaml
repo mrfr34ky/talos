@@ -30,6 +30,39 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: paperless-ngx-values
+      valuesKey: S3URL
+      targetPath: credentials.s3.url
+    - kind: Secret
+      name: paperless-ngx-values
+      valuesKey: BUCKET
+      targetPath: credentials.s3.bucket
+    - kind: Secret
+      name: paperless-ngx-values
+      valuesKey: S3ID
+      targetPath: credentials.s3.accessKey
+    - kind: Secret
+      name: paperless-ngx-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.secretKey
+    - kind: Secret
+      name: paperless-ngx-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.encrKey
+    - kind: Secret
+      name: paperless-ngx-values
+      valuesKey: PAPERLESS_CNPG_PWD
+      targetPath: cnpg.main.password
+    - kind: Secret
+      name: paperless-ngx-values
+      valuesKey: PAPERLESS_REDIS_PWD
+      targetPath: redis.password
+    - kind: Secret
+      name: paperless-ngx-values
+      valuesKey: PAPERLESS_ADM_PWD
+      targetPath: workload.main.podSpec.containers.main.env.PAPERLESS_ADMIN_PASSWORD
   values:
     global:
       stopAll: false    
@@ -40,11 +73,6 @@ spec:
     credentials:
       s3:
         type: s3
-        url: "${S3URL}"
-        bucket: "${S3PREFIX}-paperless-15072026"
-        accessKey: "${S3ID}"
-        secretKey: "${S3KEY}"
-        encrKey: "${S3KEY}" 
     persistence:
       data:
         volsync:
@@ -71,7 +99,6 @@ spec:
         mountPath: /media                     
     cnpg:
       main:
-        password: ${PAPERLESS_CNPG_PWD}
         cluster:
           singleNode: true
           # One Postgres pod instead of the chart's two: a replica on the same node adds
@@ -93,10 +120,6 @@ spec:
           method: object_store
           credentials: s3
           revision: "5"
-    redis:
-      # The chart doesn't generate it: unset, it stays at its public PLACEHOLDER default.
-      # Letters and digits only (it ends up in PAPERLESS_REDIS).
-      password: ${PAPERLESS_REDIS_PWD}
     tika:
       enabled: true
     workload:
@@ -106,7 +129,6 @@ spec:
             main:
               env:
                 PAPERLESS_ADMIN_USER: "Balazs"
-                PAPERLESS_ADMIN_PASSWORD: "${PAPERLESS_ADM_PWD}"
                 PAPERLESS_ADMIN_MAIL: "${DOMAIN_0_EMAIL}"
                 PAPERLESS_CONSUMER_POLLING: "5"
                 PAPERLESS_CONSUMER_ENABLE_ASN_BARCODE: true

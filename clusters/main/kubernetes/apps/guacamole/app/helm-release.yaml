@@ -30,6 +30,31 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: guacamole-values
+      valuesKey: S3URL
+      targetPath: credentials.s3.url
+    - kind: Secret
+      name: guacamole-values
+      valuesKey: BUCKET
+      targetPath: credentials.s3.bucket
+    - kind: Secret
+      name: guacamole-values
+      valuesKey: S3ID
+      targetPath: credentials.s3.accessKey
+    - kind: Secret
+      name: guacamole-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.secretKey
+    - kind: Secret
+      name: guacamole-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.encrKey
+    - kind: Secret
+      name: guacamole-values
+      valuesKey: GUACAMOLE_CNPG_PWD
+      targetPath: cnpg.main.password
   values:
     global:
       stopAll: false    
@@ -40,11 +65,6 @@ spec:
     credentials:
       s3:
         type: s3
-        url: "${S3URL}"
-        bucket: "${S3PREFIX}-guacamole"
-        accessKey: "${S3ID}"
-        secretKey: "${S3KEY}"
-        encrKey: "${S3KEY}"
     guacamole:
       totp: 
         TOTP_ENABLED: true
@@ -124,7 +144,6 @@ spec:
                 schedule: 24 0 * * *             
     cnpg:
       main:
-        password: ${GUACAMOLE_CNPG_PWD}
         cluster:
           singleNode: true
           # One Postgres pod instead of the chart's two: a replica on the same node adds

@@ -240,21 +240,29 @@ VALUES_FILE="$(mktemp)"
 # Extract values
 yq '.spec.values // {}' "$HELMRELEASE_PATH" > "$RAW_VALUES"
 
-# valuesFrom: copy each Secret key from the app dir into its targetPath (the ${VAR}s get substituted below)
+# valuesFrom: copy each Secret key from the app dir into its targetPath, or merge it as a YAML document
+# when there is no targetPath (spec.values still wins, as in Flux). The ${VAR}s get substituted below.
 VF_COUNT="$(yq '.spec.valuesFrom // [] | length' "$HELMRELEASE_PATH")"
 for ((i = 0; i < VF_COUNT; i++)); do
   VF_KIND="$(yq ".spec.valuesFrom[$i].kind" "$HELMRELEASE_PATH")"
   VF_NAME="$(yq ".spec.valuesFrom[$i].name" "$HELMRELEASE_PATH")"
   VF_KEY="$(yq ".spec.valuesFrom[$i].valuesKey // \"values.yaml\"" "$HELMRELEASE_PATH")"
   VF_PATH="$(yq ".spec.valuesFrom[$i].targetPath // \"\"" "$HELMRELEASE_PATH")"
-  if [[ "$VF_KIND" != "Secret" || -z "$VF_PATH" ]]; then
-    echo -e "${RED}      ✖ valuesFrom[$i]: only kind Secret with a targetPath is supported in CI${NC}"
+  if [[ "$VF_KIND" != "Secret" ]]; then
+    echo -e "${RED}      ✖ valuesFrom[$i]: only kind Secret is supported in CI${NC}"
     exit 1
   fi
   VF_VALUE="$(yq ea "select(.kind == \"Secret\" and .metadata.name == \"$VF_NAME\") | .stringData[\"$VF_KEY\"]" "$APP_DIR"/*.yaml)"
   if [[ -z "$VF_VALUE" || "$VF_VALUE" == "null" ]]; then
     echo -e "${RED}      ✖ valuesFrom[$i]: key $VF_KEY of Secret $VF_NAME not found in $APP_DIR${NC}"
     exit 1
+  fi
+  if [[ -z "$VF_PATH" ]]; then
+    VF_DOC="$(mktemp)"
+    printf '%s\n' "$VF_VALUE" > "$VF_DOC"
+    yq -i "load(\"$VF_DOC\") * ." "$RAW_VALUES"
+    echo "      ↪ valuesFrom: $VF_NAME/$VF_KEY → merged at the root"
+    continue
   fi
   VF_VALUE="$VF_VALUE" yq -i ".$VF_PATH = strenv(VF_VALUE)" "$RAW_VALUES"
   echo "      ↪ valuesFrom: $VF_NAME/$VF_KEY → $VF_PATH"

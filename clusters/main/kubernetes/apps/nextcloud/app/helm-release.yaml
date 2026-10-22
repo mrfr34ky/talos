@@ -30,6 +30,51 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: nextcloud-values
+      valuesKey: S3URL
+      targetPath: credentials.s3.url
+    - kind: Secret
+      name: nextcloud-values
+      valuesKey: BUCKET
+      targetPath: credentials.s3.bucket
+    - kind: Secret
+      name: nextcloud-values
+      valuesKey: S3ID
+      targetPath: credentials.s3.accessKey
+    - kind: Secret
+      name: nextcloud-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.secretKey
+    - kind: Secret
+      name: nextcloud-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.encrKey
+    - kind: Secret
+      name: nextcloud-values
+      valuesKey: NEXTCLOUD_USER
+      targetPath: nextcloud.credentials.initialAdminUser
+    - kind: Secret
+      name: nextcloud-values
+      valuesKey: NEXTCLOUD_PWD
+      targetPath: nextcloud.credentials.initialAdminPassword
+    - kind: Secret
+      name: nextcloud-values
+      valuesKey: COLLABORA_USER
+      targetPath: nextcloud.collabora.username
+    - kind: Secret
+      name: nextcloud-values
+      valuesKey: COLLABORA_PWD
+      targetPath: nextcloud.collabora.password
+    - kind: Secret
+      name: nextcloud-values
+      valuesKey: NEXTCLOUD_CNPG_PWD
+      targetPath: cnpg.main.password
+    - kind: Secret
+      name: nextcloud-values
+      valuesKey: NEXTCLOUD_REDIS_PWD
+      targetPath: redis.password
   values:
     global:
       stopAll: false    
@@ -40,15 +85,7 @@ spec:
     credentials:
       s3:
         type: s3
-        url: "${S3URL}"
-        bucket: "${S3PREFIX}-nextcloud-oldroots"
-        accessKey: "${S3ID}"
-        secretKey: "${S3KEY}"
-        encrKey: "${S3KEY}" 
     nextcloud:
-      credentials:
-        initialAdminUser: ${NEXTCLOUD_USER}
-        initialAdminPassword: ${NEXTCLOUD_PWD}
       general:
         default_phone_region: BE
         accessIP: ${NGINX_EXTERNAL_IP}
@@ -57,8 +94,6 @@ spec:
       #  max_file_size_image: 100
       collabora:
         enabled: true
-        username: ${COLLABORA_USER}
-        password: ${COLLABORA_PWD}
       # memory_limit and opcache stay at the chart defaults (1G, 128 MB).
       # Workers sized for the 3000Mi container (chart default 180 would OOM it).
       php:
@@ -151,7 +186,6 @@ spec:
               readOnly: true                
     cnpg:
       main:
-        password: ${NEXTCLOUD_CNPG_PWD}
         cluster:
           singleNode: true
           # One Postgres pod instead of the chart's two: a replica on the same node adds
@@ -173,8 +207,6 @@ spec:
           method: object_store
           credentials: s3
           revision: "3"  
-    redis:
-      password: ${NEXTCLOUD_REDIS_PWD}
     ingress:
         main:
           enabled: true

@@ -30,6 +30,31 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: seerr-values
+      valuesKey: S3URL
+      targetPath: credentials.s3.url
+    - kind: Secret
+      name: seerr-values
+      valuesKey: BUCKET
+      targetPath: credentials.s3.bucket
+    - kind: Secret
+      name: seerr-values
+      valuesKey: S3ID
+      targetPath: credentials.s3.accessKey
+    - kind: Secret
+      name: seerr-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.secretKey
+    - kind: Secret
+      name: seerr-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.encrKey
+    - kind: Secret
+      name: seerr-values
+      valuesKey: SEERR_CNPG_PWD
+      targetPath: cnpg.main.password
   values:
     global:
       stopAll: false    
@@ -40,11 +65,6 @@ spec:
     credentials:
       s3:
         type: s3
-        url: "${S3URL}"
-        bucket: "${S3PREFIX}-seerr"
-        accessKey: "${S3ID}"
-        secretKey: "${S3KEY}"
-        encrKey: "${S3KEY}" 
     persistence:
       config:
         volsync:
@@ -79,9 +99,6 @@ spec:
         enabled: true
         user: seerr
         database: seerr
-        # Unset, it stays at the chart's public PLACEHOLDER default. CNPG only uses it when it
-        # creates the database: changing it later also needs ALTER ROLE in Postgres.
-        password: ${SEERR_CNPG_PWD}
         #mode: recovery
         cluster:
           singleNode: true
