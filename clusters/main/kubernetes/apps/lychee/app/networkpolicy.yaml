@@ -106,6 +106,10 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: traefik-internal
+        # Homarr's status ping
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: homarr
         - podSelector:
             matchLabels:
               app.kubernetes.io/instance: lychee
