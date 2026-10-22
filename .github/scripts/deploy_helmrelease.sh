@@ -260,6 +260,10 @@ for ((i = 0; i < VF_COUNT; i++)); do
   echo "      ↪ valuesFrom: $VF_NAME/$VF_KEY → $VF_PATH"
 done
 
+# Like Flux, $${VAR} is an escape for a literal ${VAR}: hide it from envsubst, restore it below
+ESCAPED_MARK="__FLUX_ESCAPED_DOLLAR__"
+sed -i "s/\\\$\\\${/${ESCAPED_MARK}{/g" "$RAW_VALUES"
+
 # Extract ${VAR} placeholders from values YAML
 VARS_IN_FILE="$(
   grep -o '\${[A-Za-z_][A-Za-z0-9_]*}' "$RAW_VALUES" | sort -u || true
@@ -281,6 +285,7 @@ done <<< "$VARS_IN_FILE"
 
 # Substitute only existing variables, missing ones remain literal ${VAR}
 envsubst "$EXISTING_VARS" < "$RAW_VALUES" > "$VALUES_FILE"
+sed -i "s/${ESCAPED_MARK}{/\${/g" "$VALUES_FILE"
 
 # Summary of substitutions for logging
 replaced_count=$(wc -w <<< "$EXISTING_VARS")
