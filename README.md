@@ -163,7 +163,8 @@ All secrets and credentials are stored in this repository **encrypted with SOPS*
 - Secrets are committed to Git in encrypted form
 - Decryption happens inside the cluster via FluxCD
 - Decryption keys are managed externally and are never stored in Git
-- Each app keeps its own secrets next to it (`*.secret.yaml`); cluster-wide values live in `cluster-settings` and are substituted into the manifests by Flux
+- Each app keeps its own secrets next to it (`*.secret.yaml`); cluster-wide values live in `cluster-settings`
+- Secret values never end up in HelmRelease objects: Flux fills them into a per-app Secret that the HelmRelease reads via `valuesFrom`
 - A pre-commit hook refuses commits that contain unencrypted secrets
 - This enables full GitOps workflows without exposing sensitive data
 
