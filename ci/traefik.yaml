@@ -1,0 +1,4 @@
+---
+# CI-only values for the traefik chart (merged after the HelmRelease values by deploy_helmrelease.sh).
+# CI doesn't deploy the app's secret.yaml, so drop the crowdsec-bouncer Secret volume (traefik-external).
+volumes: []

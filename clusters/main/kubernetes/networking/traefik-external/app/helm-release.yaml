@@ -79,6 +79,11 @@ spec:
               memory: 8Mi
             limits:
               memory: 32Mi
+    # CrowdSec bouncer key for the crowdsec middleware (secret.yaml)
+    volumes:
+      - name: crowdsec-bouncer
+        mountPath: /crowdsec
+        type: secret
     podDisruptionBudget:
       enabled: true
       maxUnavailable: 1
@@ -187,7 +192,7 @@ spec:
               crowdsecMode: stream
               crowdsecLapiScheme: http
               crowdsecLapiHost: crowdsec-service.crowdsec.svc.cluster.local:8080
-              crowdsecLapiKey: ${CROWDSEC_BOUNCER_KEY}
+              crowdsecLapiKeyFile: /crowdsec/lapi-key
               # Take the client IP from X-Forwarded-For only when it comes from a pod (cloudflared)
               forwardedHeadersTrustedIPs:
                 - ${PODNET}
