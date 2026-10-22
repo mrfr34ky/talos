@@ -320,6 +320,14 @@ spec:
         # As on the agent: never ban private IPs (LAN, cloudflared)
         - name: PARSERS
           value: "crowdsecurity/whitelists"
+      # The image only runs `cscli hub update` when the hub index is on a volume;
+      # without it, new vpatches never arrive (stuck on the image's index)
+      extraVolumes:
+        - name: hub
+          emptyDir: {}
+      extraVolumeMounts:
+        - name: hub
+          mountPath: /etc/crowdsec/hub
       resources:
         requests:
           cpu: 25m
