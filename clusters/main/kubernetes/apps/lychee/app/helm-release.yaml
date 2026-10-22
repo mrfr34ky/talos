@@ -30,6 +30,35 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: lychee-values
+      valuesKey: S3URL
+      targetPath: credentials.s3.url
+    - kind: Secret
+      name: lychee-values
+      valuesKey: BUCKET
+      targetPath: credentials.s3.bucket
+    - kind: Secret
+      name: lychee-values
+      valuesKey: S3ID
+      targetPath: credentials.s3.accessKey
+    - kind: Secret
+      name: lychee-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.secretKey
+    - kind: Secret
+      name: lychee-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.encrKey
+    - kind: Secret
+      name: lychee-values
+      valuesKey: LYCHEE_APP_KEY
+      targetPath: workload.main.podSpec.containers.main.env.APP_KEY
+    - kind: Secret
+      name: lychee-values
+      valuesKey: LYCHEE_CNPG_PWD
+      targetPath: cnpg.main.password
   values:
     TZ: Europe/Brussels
     image:
@@ -39,11 +68,6 @@ spec:
     credentials:
       s3:
         type: s3
-        url: "${S3URL}"
-        bucket: "${S3PREFIX}-lychee"
-        accessKey: "${S3ID}"
-        secretKey: "${S3KEY}"
-        encrKey: "${S3KEY}"
     securityContext:
       container:
         # The entrypoint starts as root, then drops to www-data (PUID/PGID) via gosu
@@ -66,7 +90,6 @@ spec:
           containers:
             main:
               env:
-                APP_KEY: "${LYCHEE_APP_KEY}"
                 APP_URL: https://memories.${DOMAIN_1}
                 TIMEZONE: "{{ .Values.TZ }}"
                 TRUSTED_PROXIES: "${PODNET}"
@@ -224,7 +247,6 @@ spec:
         enabled: true
         user: lychee
         database: lychee
-        password: ${LYCHEE_CNPG_PWD}
         #mode: recovery
         cluster:
           singleNode: true

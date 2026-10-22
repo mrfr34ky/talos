@@ -33,6 +33,35 @@ spec:
   # Dashboards and data sources come from ConfigMaps (labels grafana_dashboard / grafana_datasource)
   # that the chart's sidecar collects from every namespace: kube-prometheus-stack publishes its
   # dashboards and the Prometheus data source, observability/loki the Loki data source.
+  valuesFrom:
+    - kind: Secret
+      name: grafana-values
+      valuesKey: S3URL
+      targetPath: credentials.s3.url
+    - kind: Secret
+      name: grafana-values
+      valuesKey: BUCKET
+      targetPath: credentials.s3.bucket
+    - kind: Secret
+      name: grafana-values
+      valuesKey: S3ID
+      targetPath: credentials.s3.accessKey
+    - kind: Secret
+      name: grafana-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.secretKey
+    - kind: Secret
+      name: grafana-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.encrKey
+    - kind: Secret
+      name: grafana-values
+      valuesKey: GRAFANA_ADMIN_PWD
+      targetPath: workload.main.podSpec.containers.main.env.GF_SECURITY_ADMIN_PASSWORD
+    - kind: Secret
+      name: grafana-values
+      valuesKey: GRAFANA_SECRET_KEY
+      targetPath: workload.main.podSpec.containers.main.env.GF_SECURITY_SECRET_KEY
   values:
     global:
       stopAll: false
@@ -43,11 +72,6 @@ spec:
     credentials:
       s3:
         type: s3
-        url: "${S3URL}"
-        bucket: "${S3PREFIX}-grafana"
-        accessKey: "${S3ID}"
-        secretKey: "${S3KEY}"
-        encrKey: "${S3KEY}"
     workload:
       main:
         podSpec:
@@ -58,12 +82,6 @@ spec:
                 # The chart's grafana.ini sets domain to the whole first ingress host entry
                 # ("map[host:... paths:...]"); environment variables override grafana.ini
                 GF_SERVER_DOMAIN: "grafana.${DOMAIN_0}"
-                # The chart's default is a fixed "testpassword". Keep this a plain value: the chart
-                # copies it into its sidecars, which log in as admin to reload dashboards/data sources.
-                GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PWD}"
-                # Encrypts the credentials Grafana stores in grafana.db (instead of the public default
-                # key). Changing it later makes those stored credentials unreadable.
-                GF_SECURITY_SECRET_KEY: "${GRAFANA_SECRET_KEY}"
                 # Single sign-on through Authentik forward auth (ingress middleware below, proxy
                 # provider "Grafana" bound to the "Grafana Admins" group): Grafana trusts the user
                 # name Authentik sends and logs that user in, creating it as Admin on first visit.

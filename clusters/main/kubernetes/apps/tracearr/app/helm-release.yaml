@@ -30,6 +30,43 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: tracearr-values
+      valuesKey: S3URL
+      targetPath: credentials.s3.url
+    - kind: Secret
+      name: tracearr-values
+      valuesKey: BUCKET
+      targetPath: credentials.s3.bucket
+    - kind: Secret
+      name: tracearr-values
+      valuesKey: S3ID
+      targetPath: credentials.s3.accessKey
+    - kind: Secret
+      name: tracearr-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.secretKey
+    - kind: Secret
+      name: tracearr-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.encrKey
+    - kind: Secret
+      name: tracearr-values
+      valuesKey: TRACEARR_JWT_SECRET
+      targetPath: workload.main.podSpec.containers.main.env.JWT_SECRET
+    - kind: Secret
+      name: tracearr-values
+      valuesKey: TRACEARR_COOKIE_SECRET
+      targetPath: workload.main.podSpec.containers.main.env.COOKIE_SECRET
+    - kind: Secret
+      name: tracearr-values
+      valuesKey: TRACEARR_CNPG_PWD
+      targetPath: cnpg.main.password
+    - kind: Secret
+      name: tracearr-values
+      valuesKey: TRACEARR_REDIS_PWD
+      targetPath: redis.password
   values:
     global:
       stopAll: false    
@@ -44,11 +81,6 @@ spec:
     credentials:
       s3:
         type: s3
-        url: "${S3URL}"
-        bucket: "${S3PREFIX}-tracearr"
-        accessKey: "${S3ID}"
-        secretKey: "${S3KEY}"
-        encrKey: "${S3KEY}"  
     securityContext:
       container:
         runAsNonRoot: false
@@ -81,8 +113,6 @@ spec:
                     expandObjectName: false
                     name: '{{ printf "%s-%s" .Release.Name "rediscreds" }}'
                     key: url
-                JWT_SECRET: "${TRACEARR_JWT_SECRET}"
-                COOKIE_SECRET: "${TRACEARR_COOKIE_SECRET}"
                 CORS_ORIGIN: "{{ .Values.chartContext.appUrl }}"
     ingress:
         main:
@@ -114,9 +144,6 @@ spec:
         enabled: true
         user: tracearr
         database: tracearr
-        # Unset, it stays at the chart's public PLACEHOLDER default. CNPG only uses it when it
-        # creates the database: changing it later also needs ALTER ROLE in Postgres.
-        password: ${TRACEARR_CNPG_PWD}
         #mode: recovery
         cluster:
           singleNode: true
@@ -141,6 +168,3 @@ spec:
 
     redis:
       enabled: true
-      # The chart doesn't generate it: unset, it stays at its public PLACEHOLDER default.
-      # Letters and digits only (it ends up in REDIS_URL).
-      password: ${TRACEARR_REDIS_PWD}

@@ -32,6 +32,63 @@ spec:
     keepHistory: false
   # Public website on the second domain's apex (no subdomain), through the Cloudflare Tunnel and
   # traefik-external, so CrowdSec covers it. Bitnami WordPress image.
+  valuesFrom:
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: S3URL
+      targetPath: credentials.s3.url
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: BUCKET
+      targetPath: credentials.s3.bucket
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: S3ID
+      targetPath: credentials.s3.accessKey
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.secretKey
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.encrKey
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: WORDPRESS_ADMIN_USER
+      targetPath: wordpress.user
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: WORDPRESS_ADMIN_PWD
+      targetPath: wordpress.pass
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: WORDPRESS_MARIADB_PWD
+      targetPath: mariadb.password
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: WORDPRESS_MARIADB_ROOT_PWD
+      targetPath: mariadb.rootPassword
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: S3URL
+      targetPath: mariadb.credentials.s3.url
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: BUCKET
+      targetPath: mariadb.credentials.s3.bucket
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: S3ID
+      targetPath: mariadb.credentials.s3.accessKey
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: S3KEY
+      targetPath: mariadb.credentials.s3.secretKey
+    - kind: Secret
+      name: wordpress-values
+      valuesKey: S3KEY
+      targetPath: mariadb.credentials.s3.encrKey
   values:
     global:
       stopAll: false
@@ -42,16 +99,9 @@ spec:
     credentials:
       s3:
         type: s3
-        url: "${S3URL}"
-        bucket: "${S3PREFIX}-wordpress"
-        accessKey: "${S3ID}"
-        secretKey: "${S3KEY}"
-        encrKey: "${S3KEY}"
     wordpress:
       # Admin account, created on the first start only (an empty volume). Change the password or
       # add accounts in WordPress itself afterwards; editing these values then does nothing.
-      user: "${WORDPRESS_ADMIN_USER}"
-      pass: "${WORDPRESS_ADMIN_PWD}"
       email: "${DOMAIN_2_EMAIL}"
       first_name: Admin
       last_name: Admin
@@ -104,19 +154,10 @@ spec:
                 # Free slot after Plex at the end of the nightly chain (UTC, 7 minutes apart)
                 schedule: 52 4 * * *
     mariadb:
-      # The chart doesn't generate these: unset, they stay at its public PLACEHOLDER defaults.
-      # MariaDB re-applies them on every start (--init-file). Letters and digits only.
-      password: ${WORDPRESS_MARIADB_PWD}
-      rootPassword: ${WORDPRESS_MARIADB_ROOT_PWD}
       # The sub-chart doesn't see the parent's credentials, so it gets its own copy
       credentials:
         s3:
           type: s3
-          url: "${S3URL}"
-          bucket: "${S3PREFIX}-wordpress"
-          accessKey: "${S3ID}"
-          secretKey: "${S3KEY}"
-          encrKey: "${S3KEY}"
       persistence:
         data:
           volsync:

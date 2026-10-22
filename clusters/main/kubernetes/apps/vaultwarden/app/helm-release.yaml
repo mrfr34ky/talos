@@ -30,6 +30,38 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: vaultwarden-values
+      valuesKey: S3URL
+      targetPath: credentials.s3.url
+    - kind: Secret
+      name: vaultwarden-values
+      valuesKey: BUCKET
+      targetPath: credentials.s3.bucket
+    - kind: Secret
+      name: vaultwarden-values
+      valuesKey: S3ID
+      targetPath: credentials.s3.accessKey
+    - kind: Secret
+      name: vaultwarden-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.secretKey
+    - kind: Secret
+      name: vaultwarden-values
+      valuesKey: S3KEY
+      targetPath: credentials.s3.encrKey
+    - kind: Secret
+      name: vaultwarden-values
+      valuesKey: VW_TOKEN_VALUES
+    - kind: Secret
+      name: vaultwarden-values
+      valuesKey: VW_SMTP_PWD
+      targetPath: vaultwarden.smtp.password
+    - kind: Secret
+      name: vaultwarden-values
+      valuesKey: VAULTWARDEN_CNPG_PWD
+      targetPath: cnpg.main.password
   values:
     global:
       stopAll: false    
@@ -40,11 +72,6 @@ spec:
     credentials:
       s3:
         type: s3
-        url: "${S3URL}"
-        bucket: "${S3PREFIX}-vaultwarden-15072026"
-        accessKey: "${S3ID}"
-        secretKey: "${S3KEY}"
-        encrKey: "${S3KEY}"
     vaultwarden:
       allowSignups: false
       verifySignup: false
@@ -55,7 +82,6 @@ spec:
       admin:
         enabled: true
         disableAdminToken: false
-        token: ${VW_TOKEN}
       smtp:
         enabled: true
         host: smtp.gmail.com
@@ -68,7 +94,6 @@ spec:
         invalidHostname: false
         invalidCertificate: false
         user: ${DOMAIN_0_EMAIL}
-        password: ${VW_SMTP_PWD}
       # CrowdSec (Dominic-Wagner/vaultwarden) reads these logs:
       log:
         level: info
@@ -97,7 +122,6 @@ spec:
                 schedule: 47 3 * * *
     cnpg:
       main:
-        password: ${VAULTWARDEN_CNPG_PWD}
         cluster:
           singleNode: true
           # One Postgres pod instead of the chart's two: a replica on the same node adds
