@@ -51,6 +51,14 @@ spec:
       name: mealie-values
       valuesKey: S3KEY
       targetPath: credentials.s3.encrKey
+    - kind: Secret
+      name: mealie-values
+      valuesKey: mealie_CNPG_PWD
+      targetPath: cnpg.main.password
+    - kind: Secret
+      name: mealie-values
+      valuesKey: mealie_SMTP_PWD
+      targetPath: mealie.api.smtp.password
   values:
     global:
       stopAll: false    
@@ -75,7 +83,6 @@ spec:
                 schedule: 20 1 * * *
     cnpg:
       main:
-        password: ${mealie_CNPG_PWD}
         cluster:
           singleNode: true
           # One Postgres pod instead of the chart's two: a replica on the same node adds
@@ -121,7 +128,6 @@ spec:
           allow_signup: false
         smtp:
           user: "${DOMAIN_0_EMAIL}"
-          password: "${mealie_SMTP_PWD}"
           host: "smtp.gmail.com"
           port: 587
           from_name: Mealie

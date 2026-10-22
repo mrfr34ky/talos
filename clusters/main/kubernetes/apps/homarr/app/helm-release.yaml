@@ -51,6 +51,10 @@ spec:
       name: homarr-values
       valuesKey: S3KEY
       targetPath: credentials.s3.encrKey
+    - kind: Secret
+      name: homarr-values
+      valuesKey: homarr
+      targetPath: workload.main.podSpec.containers.main.env.SECRET_ENCRYPTION_KEY
   values:
 #    addons:
 #      codeserver:
@@ -76,7 +80,6 @@ spec:
           containers:
             main:
               env:
-                SECRET_ENCRYPTION_KEY: "${homarr}"
     persistence:
       appdata:
         volsync:
