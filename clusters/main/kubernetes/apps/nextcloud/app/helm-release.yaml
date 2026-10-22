@@ -59,11 +59,14 @@ spec:
         enabled: true
         username: ${COLLABORA_USER}
         password: ${COLLABORA_PWD}
+      # memory_limit and opcache stay at the chart defaults (1G, 128 MB).
+      # Workers sized for the 3000Mi container (chart default 180 would OOM it).
       php:
-        memory_limit: 10G
         upload_limit: 20G
-      opcache:
-        memory_consumption: 2560
+        pm_max_children: 24
+        pm_start_servers: 6
+        pm_min_spare_servers: 4
+        pm_max_spare_servers: 12
       logging:
         # ISO 8601 with UTC offset, the format CrowdSec's nextcloud parser expects.
         # The chart default (d/m/Y H:i:s) has no timezone and is ambiguous.
