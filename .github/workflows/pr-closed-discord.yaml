@@ -1,0 +1,35 @@
+---
+# Posts every closed PR (merged or not) to Discord. Webhook URL: Actions secret DISCORD_PR_WEBHOOK.
+name: PR closed to Discord
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send to Discord
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_PR_WEBHOOK }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          URL: ${{ github.event.pull_request.html_url }}
+          MERGED: ${{ github.event.pull_request.merged }}
+          MERGED_BY: ${{ github.event.pull_request.merged_by.login }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "DISCORD_PR_WEBHOOK is not set, skipping"
+            exit 0
+          fi
+          if [ "$MERGED" = "true" ]; then
+            status="✅ Merged by $MERGED_BY"; color=5763719
+          else
+            status="❌ Closed without merging"; color=15548997
+          fi
+          jq -n --arg t "#$NUMBER $TITLE" --arg u "$URL" --arg d "$status" --argjson c "$color" \
+            '{embeds: [{title: ($t | .[0:256]), url: $u, description: $d, color: $c}]}' |
+            curl -sS -f -H 'Content-Type: application/json' -d @- "$WEBHOOK"
