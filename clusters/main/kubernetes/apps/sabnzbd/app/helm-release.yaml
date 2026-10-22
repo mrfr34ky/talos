@@ -75,7 +75,83 @@ spec:
             exportarr:
               env:
                 ENABLE_ADDITIONAL_METRICS: false     
+    # Post-processing script: posts every finished job with its size to Discord. The webhook is the
+    # Discord URL from SABnzbd's own Apprise settings, so no extra secret. Set in SABnzbd: Folders →
+    # Scripts Folder = /scripts, Categories → * (Default) → Script = discord-notify.py
+    configmap:
+      scripts:
+        enabled: true
+        data:
+          discord-notify.py: |
+            #!/usr/bin/env python3
+            """SABnzbd post-processing script: posts the finished job with size, time and speed to Discord."""
+            import json
+            import os
+            import sys
+            import urllib.request
+
+            def human(n):
+                n = float(n or 0)
+                for unit in ("B", "KB", "MB", "GB"):
+                    if n < 1024:
+                        return f"{n:.0f} {unit}" if unit == "B" else f"{n:.1f} {unit}"
+                    n /= 1024
+                return f"{n:.2f} TB"
+
+            def duration(s):
+                s = int(float(s or 0))
+                return f"{s // 3600}h {s % 3600 // 60}m" if s >= 3600 else f"{s // 60}m {s % 60}s"
+
+            def webhook():
+                try:
+                    with open("/config/sabnzbd.ini", encoding="utf-8") as f:
+                        for line in f:
+                            if line.startswith("apprise_urls"):
+                                for url in line.split("=", 1)[1].split(","):
+                                    url = url.strip()
+                                    if url.startswith("https://discord.com/api/webhooks/"):
+                                        return url
+                except OSError:
+                    pass
+                return None
+
+            env = os.environ.get
+            name = env("SAB_FINAL_NAME") or (sys.argv[3] if len(sys.argv) > 3 else "?")
+            ok = env("SAB_PP_STATUS", "0") == "0" and env("SAB_STATUS", "Completed") != "Failed"
+            fields = [
+                {"name": "Size", "value": human(env("SAB_BYTES")), "inline": True},
+                {"name": "Time", "value": duration(env("SAB_DOWNLOAD_TIME")), "inline": True},
+                {"name": "Speed", "value": human(env("SAB_AVG_BPS")) + "/s", "inline": True},
+                {"name": "Category", "value": env("SAB_CAT") or "-", "inline": True},
+            ]
+            if not ok and env("SAB_FAIL_MSG"):
+                fields.append({"name": "Error", "value": env("SAB_FAIL_MSG")[:1000]})
+            payload = {"username": "SABnzbd", "embeds": [{
+                "title": ("✅ " if ok else "❌ ") + name[:240],
+                "color": 5763719 if ok else 15548997,
+                "fields": fields,
+            }]}
+
+            url = webhook()
+            if not url:
+                print("No Discord webhook in apprise_urls, nothing sent")
+                sys.exit(0)
+            try:
+                req = urllib.request.Request(url, data=json.dumps(payload).encode(),
+                                             headers={"Content-Type": "application/json", "User-Agent": "sabnzbd-script"})
+                urllib.request.urlopen(req, timeout=10).read()
+                print("Discord notification sent")
+            except Exception as e:  # never fail the job because of a notification
+                print(f"Discord notification failed: {e}")
+            sys.exit(0)
     persistence:
+      scripts:
+        enabled: true
+        type: configmap
+        objectName: scripts
+        mountPath: /scripts
+        defaultMode: "0755"
+        readOnly: true
       config:
         volsync:
           - name: b2
