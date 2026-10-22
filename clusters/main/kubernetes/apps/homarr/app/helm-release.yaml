@@ -74,12 +74,6 @@ spec:
     credentials:
       s3:
         type: s3
-    workload:     
-      main:
-        podSpec:
-          containers:
-            main:
-              env:
     persistence:
       appdata:
         volsync:
