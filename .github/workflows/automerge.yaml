@@ -1,7 +1,8 @@
 ---
 # The only thing that merges Renovate PRs (Renovate itself has automerge: false, see
 # .github/special_talos.json5; it only labels PRs "automerge").
-# Merges every qualifying PR in one run, oldest first, without waiting between merges.
+# Merges at most one qualifying PR per run (oldest first), and only 5+ min after the last auto-merge:
+# two heavy restarts at once (Loki + Nextcloud, 2026-10-22) starved etcd and took the API down.
 # A PR qualifies when "HelmRelease Test" (test-summary) passed on its current commit; only that exact
 # commit is merged (--match-head-commit). Never merged: PRs labelled system-upgrade (Talos/Kubernetes)
 # or needs-manual-merge (changes a HelmRelease that CI can't test, set by helmrelease-test.yaml).
@@ -31,10 +32,17 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+
       - name: Merge all tested PRs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          WEBHOOK: ${{ secrets.DISCORD_PR_WEBHOOK }}
         run: |
           set -euo pipefail
 
@@ -51,6 +59,18 @@ jobs:
           if [ ${#candidates[@]} -eq 0 ]; then
             echo "ℹ️ No PRs waiting to be auto-merged"
             exit 0
+          fi
+
+          # At least 5 minutes between auto-merges: this workflow also runs right after every test,
+          # so one merge per run alone could still restart two apps seconds apart
+          last=$(gh pr list --state merged --limit 30 --json mergedAt,mergedBy \
+            --jq '[.[] | select(.mergedBy.login // "" | test("github-actions"))] | sort_by(.mergedAt) | last | .mergedAt // empty')
+          if [ -n "$last" ]; then
+            age=$(( $(date +%s) - $(date -d "$last" +%s) ))
+            if [ "$age" -lt 300 ]; then
+              echo "⏳ Last auto-merge was ${age}s ago, waiting until 5 minutes have passed"
+              exit 0
+            fi
           fi
 
           merged=0
@@ -70,6 +90,13 @@ jobs:
             if gh pr merge "$number" --squash --match-head-commit "$sha"; then
               echo "✅ Merged PR #$number at $sha"
               merged=$((merged + 1))
+              # This merge doesn't trigger pr-closed-discord.yaml (GITHUB_TOKEN), so post it here
+              NUMBER="$number" MERGED=true MERGED_BY=Automerge \
+                TITLE="$(gh pr view "$number" --json title --jq .title)" \
+                URL="$(gh pr view "$number" --json url --jq .url)" \
+                bash .github/scripts/discord-pr-closed.sh || echo "⚠️ Discord notification for #$number failed"
+              # One merge per run; the next run (schedule or the next test) takes the next PR
+              break
             else
               echo "⚠️ PR #$number could not be merged (conflict, or it moved on), skipping it"
             fi
