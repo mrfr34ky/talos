@@ -1,0 +1,16 @@
+---
+# CI-only values for the frigate chart (merged after the HelmRelease values by deploy_helmrelease.sh).
+# The real config lives on the config PVC; CI starts empty and the chart's dummy config crashes 0.18.
+# version: current schema, so Frigate doesn't try to migrate (and rewrite) the read-only file.
+frigateConfig:
+  version: 0.18-0
+  mqtt:
+    enabled: false
+  cameras:
+    dummy:
+      enabled: false
+      ffmpeg:
+        inputs:
+          - path: rtsp://127.0.0.1:554/rtsp
+            roles:
+              - detect

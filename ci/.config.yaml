@@ -29,6 +29,7 @@ dummyEnv:
   PLEX_IP: 192.168.20.216
   PIHOLE_IP: 192.168.20.217
   HEADLAMP_IP: 192.168.20.218
+  FRIGATE_IP: 192.168.20.219
   S3URL: https://s3.dummy.local
   S3ID: dummy-s3-id
   S3KEY: dummy-s3-key
