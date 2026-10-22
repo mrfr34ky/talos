@@ -30,6 +30,19 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: prometheus-pve-exporter-values
+      valuesKey: PVE_USER
+      targetPath: pve.credentials.user
+    - kind: Secret
+      name: prometheus-pve-exporter-values
+      valuesKey: PVE_TOKEN_NAME
+      targetPath: pve.credentials.tokenName
+    - kind: Secret
+      name: prometheus-pve-exporter-values
+      valuesKey: PVE_TOKEN_VALUE
+      targetPath: pve.credentials.tokenValue
   values:
     global:
       stopAll: false
@@ -39,10 +52,6 @@ spec:
         cpu: 10m
     # Read-only API token: user ${PVE_USER} with role PVEAuditor on "/".
     pve:
-      credentials:
-        user: ${PVE_USER}
-        tokenName: ${PVE_TOKEN_NAME}
-        tokenValue: ${PVE_TOKEN_VALUE}
       general:
         target: 192.168.1.48 # same host as ext-prox
         verifySsl: false # Proxmox self-signed certificate
