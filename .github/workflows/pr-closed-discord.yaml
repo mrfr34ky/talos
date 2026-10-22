@@ -1,17 +1,27 @@
 ---
 # Posts every closed PR (merged or not) to Discord. Webhook URL: Actions secret DISCORD_PR_WEBHOOK.
+# PRs merged by the Automerge workflow don't trigger this (GITHUB_TOKEN); Automerge posts those itself.
 name: PR closed to Discord
 
 on:
   pull_request:
     types: [closed]
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The script from the default branch, never the PR's own copy (it runs with the webhook secret)
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+
       - name: Send to Discord
         env:
           WEBHOOK: ${{ secrets.DISCORD_PR_WEBHOOK }}
@@ -20,16 +30,4 @@ jobs:
           URL: ${{ github.event.pull_request.html_url }}
           MERGED: ${{ github.event.pull_request.merged }}
           MERGED_BY: ${{ github.event.pull_request.merged_by.login }}
-        run: |
-          if [ -z "$WEBHOOK" ]; then
-            echo "DISCORD_PR_WEBHOOK is not set, skipping"
-            exit 0
-          fi
-          if [ "$MERGED" = "true" ]; then
-            status="✅ Merged by $MERGED_BY"; color=5763719
-          else
-            status="❌ Closed without merging"; color=15548997
-          fi
-          jq -n --arg t "#$NUMBER $TITLE" --arg u "$URL" --arg d "$status" --argjson c "$color" \
-            '{embeds: [{title: ($t | .[0:256]), url: $u, description: $d, color: $c}]}' |
-            curl -sS -f -H 'Content-Type: application/json' -d @- "$WEBHOOK"
+        run: bash .github/scripts/discord-pr-closed.sh
