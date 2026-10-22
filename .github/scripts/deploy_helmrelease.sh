@@ -240,6 +240,26 @@ VALUES_FILE="$(mktemp)"
 # Extract values
 yq '.spec.values // {}' "$HELMRELEASE_PATH" > "$RAW_VALUES"
 
+# valuesFrom: copy each Secret key from the app dir into its targetPath (the ${VAR}s get substituted below)
+VF_COUNT="$(yq '.spec.valuesFrom // [] | length' "$HELMRELEASE_PATH")"
+for ((i = 0; i < VF_COUNT; i++)); do
+  VF_KIND="$(yq ".spec.valuesFrom[$i].kind" "$HELMRELEASE_PATH")"
+  VF_NAME="$(yq ".spec.valuesFrom[$i].name" "$HELMRELEASE_PATH")"
+  VF_KEY="$(yq ".spec.valuesFrom[$i].valuesKey // \"values.yaml\"" "$HELMRELEASE_PATH")"
+  VF_PATH="$(yq ".spec.valuesFrom[$i].targetPath // \"\"" "$HELMRELEASE_PATH")"
+  if [[ "$VF_KIND" != "Secret" || -z "$VF_PATH" ]]; then
+    echo -e "${RED}      ✖ valuesFrom[$i]: only kind Secret with a targetPath is supported in CI${NC}"
+    exit 1
+  fi
+  VF_VALUE="$(yq ea "select(.kind == \"Secret\" and .metadata.name == \"$VF_NAME\") | .stringData[\"$VF_KEY\"]" "$APP_DIR"/*.yaml)"
+  if [[ -z "$VF_VALUE" || "$VF_VALUE" == "null" ]]; then
+    echo -e "${RED}      ✖ valuesFrom[$i]: key $VF_KEY of Secret $VF_NAME not found in $APP_DIR${NC}"
+    exit 1
+  fi
+  VF_VALUE="$VF_VALUE" yq -i ".$VF_PATH = strenv(VF_VALUE)" "$RAW_VALUES"
+  echo "      ↪ valuesFrom: $VF_NAME/$VF_KEY → $VF_PATH"
+done
+
 # Extract ${VAR} placeholders from values YAML
 VARS_IN_FILE="$(
   grep -o '\${[A-Za-z_][A-Za-z0-9_]*}' "$RAW_VALUES" | sort -u || true
