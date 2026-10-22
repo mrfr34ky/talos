@@ -30,6 +30,11 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: tailscale-values
+      valuesKey: TAILSCALE_AUTH_KEY
+      targetPath: tailscale.authkey
   values: 
     global:
       stopAll: false
@@ -38,7 +43,6 @@ spec:
       requests:
         cpu: 10m       
     tailscale:
-      authkey: ${TAILSCALE_AUTH_KEY}
       auth_once: false
       userspace: true
       accept_dns: true
