@@ -99,10 +99,11 @@ spec:
       php-hardening:
         enabled: true
         data:
-          # CVE-2026-109619 (upload progress) and CVE-2026-109618 (deeply nested input); Nextcloud needs neither
+          # PHP2Shell (CVE-2026-109618/-109619) until PHP 8.5.12; Nextcloud needs none of these
           zz-php-hardening.ini: |
             session.upload_progress.enabled = Off
             max_input_nesting_level = 10
+            fatal_error_backtraces = Off
     persistence:
       php-hardening:
         enabled: true
