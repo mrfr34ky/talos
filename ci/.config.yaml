@@ -11,7 +11,7 @@ canaryHelmRelease: clusters/main/kubernetes/observability/kromgo/app/helm-releas
 
 dummyEnv:
   DOMAIN_0: dummy.local
-  # Emails use example.com: validators reject reserved domains like .local (pgadmin)
+  # Emails use example.com: validators reject reserved domains like .local
   DOMAIN_0_EMAIL: ci@example.com
   DOMAIN_0_CLOUDFLARE_TOKEN: dummy-cloudflare-token
   DOMAIN_1: dummy1.local
@@ -21,7 +21,6 @@ dummyEnv:
   DOMAIN_2_EMAIL: ci2@example.com
   DOMAIN_2_CLOUDFLARE_TOKEN: dummy-cloudflare-token-2
   GMAIL_USER: ci@example.com
-  PIXELFED_CONTACT_EMAIL: contact@example.com
   PODNET: 10.42.0.0/16
   METALLB_RANGE: 192.168.20.211-192.168.20.219
   BLOCKY_IP: 192.168.20.212
@@ -73,12 +72,6 @@ dummyEnv:
   PAPERLESS_ADM_PWD: dummy-password
   PAPERLESS_CNPG_PWD: dummy-password
   PAPERLESS_REDIS_PWD: dummyredispassword
-  PGADMIN_PWD: dummy-password
-  PIXELFED_APP_KEY: base64:Y2ktZHVtbXktcGl4ZWxmZWQtYXBwLWtleS0wMTIzNDU= # Laravel key: "base64:" + 32 bytes
-  PIXELFED_SMTP_PWD: dummy-password
-  PIXELFED_MARIADB_PWD: dummypassword
-  PIXELFED_MARIADB_ROOT_PWD: dummyrootpassword
-  PIXELFED_REDIS_PWD: dummyredispassword
   PLEX_TOKEN: dummy-plex-token
   PRIVADO_USER: ci
   PRIVADO_PWD: dummy-password
@@ -86,7 +79,6 @@ dummyEnv:
   PVE_TOKEN_NAME: ci
   PVE_TOKEN_VALUE: dummy-token
   SEERR_CNPG_PWD: dummy-password
-  TDARR_API: dummy-api-key
   TRACEARR_JWT_SECRET: dummy-jwt-secret-0123456789abcdef
   TRACEARR_COOKIE_SECRET: dummy-cookie-secret-0123456789abcdef
   TRACEARR_REDIS_PWD: dummyredispassword
@@ -109,7 +101,6 @@ skipList:
   - clusters/main/kubernetes/system/system-upgrade/tuppr/app
   - clusters/main/kubernetes/flux-system/flux-instance/app
   - clusters/main/kubernetes/flux-system/flux-operator/app
-  - clusters/main/kubernetes/apps/k8tz/app
   # Need real external credentials to start
   - clusters/main/kubernetes/apps/cloudflared/app
   - clusters/main/kubernetes/apps/tailscale/app
@@ -120,4 +111,3 @@ automergeUntested:
   - clusters/main/kubernetes/system/system-upgrade/tuppr/app
   - clusters/main/kubernetes/apps/cloudflared/app
   - clusters/main/kubernetes/apps/tailscale/app
-  - clusters/main/kubernetes/apps/k8tz/app

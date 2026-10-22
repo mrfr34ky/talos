@@ -313,70 +313,12 @@ jobs:
         run: |
           bash .github/scripts/deploy_helmrelease.sh "${{ matrix.helmrelease }}"
 
-  # Pixelfed mounts patched upstream PHP files (configmap.phppatches in its HelmRelease).
-  # Fails when the image's Pixelfed version changes those files, so the patches get reviewed.
-  pixelfed-patches:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Compare patched files with upstream
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          release=clusters/main/kubernetes/apps/pixelfed/app/helm-release.yaml
-
-          if [ "$EVENT_NAME" = "pull_request" ] && ! git diff --name-only "$BASE_SHA" "$GITHUB_SHA" \
-            | grep -qE '^(clusters/main/kubernetes/apps/pixelfed/|\.github/workflows/helmrelease-test\.yaml$)'; then
-            echo "ℹ️ Pixelfed unchanged, nothing to check"
-            exit 0
-          fi
-
-          if ! grep -q 'phppatches:' "$release"; then
-            echo "ℹ️ No Pixelfed patches, nothing to check"
-            exit 0
-          fi
-
-          version=$(grep -m1 -oE 'tag: v[0-9]+\.[0-9]+\.[0-9]+-apache' "$release" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
-          if [ -z "$version" ]; then
-            echo "❌ Pixelfed version not found in the image tag of $release"
-            exit 1
-          fi
-
-          # Upstream blob SHAs of the files the patches are based on (pixelfed v0.15.0)
-          declare -A base=(
-            [FetchCacheService.php]=5bc3e4dfceb04e99c1079437067094763fe4e38f
-            [SecureMediaFetchService.php]=ad579dff41fe1c19498e17ace59d80526096c42b
-            [CustomEmojiService.php]=1ab32ef4186d08990d919f323c01b8472f29f5d8
-          )
-
-          failed=0
-          for file in "${!base[@]}"; do
-            sha=$(gh api "repos/pixelfed/pixelfed/contents/app/Services/$file?ref=$version" --jq .sha)
-            if [ "$sha" = "${base[$file]}" ]; then
-              echo "✅ $file unchanged in $version"
-            else
-              echo "❌ $file changed upstream in $version: update or drop its patched copy (configmap.phppatches)"
-              failed=1
-            fi
-          done
-
-          exit "$failed"
-
   test-summary:
     name: test-summary
     runs-on: ubuntu-latest
     needs:
       - detect
       - test
-      - pixelfed-patches
     if: always()
 
     steps:
@@ -401,10 +343,6 @@ jobs:
             else
               echo "❌ One or more HelmRelease tests failed."
             fi
-            echo ""
-
-            echo "### Pixelfed patch check"
-            echo "- Result: **${{ needs.pixelfed-patches.result }}**"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Enforce final status
@@ -419,11 +357,6 @@ jobs:
           if [ "${{ needs.test.result }}" != "success" ] && \
              [ "${{ needs.test.result }}" != "skipped" ]; then
             echo "HelmRelease tests failed"
-            exit 1
-          fi
-
-          if [ "${{ needs.pixelfed-patches.result }}" != "success" ]; then
-            echo "Pixelfed patch check failed"
             exit 1
           fi
 

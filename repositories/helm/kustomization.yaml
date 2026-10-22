@@ -17,4 +17,3 @@ resources:
   - truecharts.yaml
   - traefik.yaml
   - crowdsec.yaml
-  #- k8tz.yaml

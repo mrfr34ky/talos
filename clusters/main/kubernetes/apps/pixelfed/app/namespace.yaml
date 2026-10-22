@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-    name: pixelfed
-    labels:
-        # The gluetun VPN sidecar needs NET_ADMIN/NET_RAW, which "baseline" rejects
-        pod-security.kubernetes.io/enforce: privileged

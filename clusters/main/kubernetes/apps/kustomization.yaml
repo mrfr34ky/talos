@@ -7,7 +7,6 @@ resources:
   - homarr/ks.yaml
   - frigate/ks.yaml
   - mosquitto/ks.yaml
-  #- k8tz/ks.yaml
   - ext-nas/ks.yaml
   - ext-garage/ks.yaml
   - ext-pikvm/ks.yaml
@@ -15,26 +14,18 @@ resources:
   - ext-prox/ks.yaml
   - ext-slzb/ks.yaml
   - ext-printer/ks.yaml
-  #- pgadmin/ks.yaml
   - prowlarr/ks.yaml
   - radarr/ks.yaml
   - sonarr/ks.yaml
   - plex/ks.yaml
-  #- qbittorrent/ks.yaml
   - ytptube/ks.yaml
   - deemix/ks.yaml
   - deemix2/ks.yaml
-  #- jdownloader2/ks.yaml
-  #- krusader/ks.yaml
-  #- filezilla/ks.yaml
   - syncthing/ks.yaml
   - profilarr/ks.yaml
   - tailscale/ks.yaml
-  #- flaresolverr/ks.yaml
   - plex-auto-languages/ks.yaml
   - sabnzbd/ks.yaml
-  #- tdarr/ks.yaml
-  #- backuppc/ks.yaml
   - crowdsec/ks.yaml
   - littlelink/ks.yaml
   #- gallery-dl/ks.yaml
@@ -51,5 +42,4 @@ resources:
   - lychee/ks.yaml
   #####################MARIADB######################
   - wordpress/ks.yaml
-  #- pixelfed/ks.yaml
   
