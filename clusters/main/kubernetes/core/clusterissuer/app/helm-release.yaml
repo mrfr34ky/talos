@@ -28,52 +28,17 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: clusterissuer-values
+      valuesKey: ACME_VALUES
   values:
 
     clusterIssuer:
       selfSigned:
         enabled: true
         name: "selfsigned"
-      ## Remove these if you do NOT want to use clusterissuer
-      ACME:
-        - name: domain-0-le-staging
-          # Used for both logging in to the DNS provider AND ACME registration
-          email: "${DOMAIN_0_EMAIL}"
-          server: 'https://acme-staging-v02.api.letsencrypt.org/directory'
-          # Options: HTTP01, cloudflare, route53, akamai, digitalocean, rfc2136, acmedns, webhook
-          type: "cloudflare"
-          # for cloudflare
-          cfapitoken: "${DOMAIN_0_CLOUDFLARE_TOKEN}"
-        - name: domain-0-le-prod
-          # Used for both logging in to the DNS provider AND ACME registration
-          email: "${DOMAIN_0_EMAIL}"
-          server: 'https://acme-v02.api.letsencrypt.org/directory'
-          # Options: HTTP01, cloudflare, route53, akamai, digitalocean, rfc2136, acmedns, webhook
-          type: "cloudflare"
-          # for cloudflare
-          cfapitoken: "${DOMAIN_0_CLOUDFLARE_TOKEN}"
-        # DOMAIN_1 (Pixelfed's, app disabled): same setup, with its own Cloudflare token (DNS edit on that zone only)
-        - name: domain-1-le-staging
-          email: "${DOMAIN_1_EMAIL}"
-          server: 'https://acme-staging-v02.api.letsencrypt.org/directory'
-          type: "cloudflare"
-          cfapitoken: "${DOMAIN_1_CLOUDFLARE_TOKEN}"
-        - name: domain-1-le-prod
-          email: "${DOMAIN_1_EMAIL}"
-          server: 'https://acme-v02.api.letsencrypt.org/directory'
-          type: "cloudflare"
-          cfapitoken: "${DOMAIN_1_CLOUDFLARE_TOKEN}"
-        # Second domain: same setup, with its own Cloudflare token (DNS edit on that zone only)
-        - name: domain-2-le-staging
-          email: "${DOMAIN_2_EMAIL}"
-          server: 'https://acme-staging-v02.api.letsencrypt.org/directory'
-          type: "cloudflare"
-          cfapitoken: "${DOMAIN_2_CLOUDFLARE_TOKEN}"
-        - name: domain-2-le-prod
-          email: "${DOMAIN_2_EMAIL}"
-          server: 'https://acme-v02.api.letsencrypt.org/directory'
-          type: "cloudflare"
-          cfapitoken: "${DOMAIN_2_CLOUDFLARE_TOKEN}"
+      # The ACME issuers (incl. Cloudflare tokens) come from secret.yaml via valuesFrom
 
     ## Remove these if you do NOT want to use clusterissuer
     clusterCertificates:
