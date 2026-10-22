@@ -28,6 +28,11 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  valuesFrom:
+    - kind: Secret
+      name: blocky-values
+      valuesKey: BLOCKY_REDIS_PWD
+      targetPath: redis.password
   values:
     ## set stopAll to "true" if you do not want to use blocky
     # and/or disable its service
@@ -86,7 +91,3 @@ spec:
       main:
         enabled: false
 
-    redis:
-      # The chart doesn't generate it: unset, it stays at its public PLACEHOLDER default.
-      # Letters and digits only.
-      password: ${BLOCKY_REDIS_PWD}
