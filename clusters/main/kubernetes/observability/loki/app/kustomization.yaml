@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - helm-release.yaml
+  - secret.yaml
   - grafana-datasource.yaml
   - logs-dashboard.yaml
   - networkpolicy.yaml
