@@ -4,13 +4,15 @@
 #   1. ports.websecure.http.middlewares   (bouncer on every route)
 #   2. experimental.plugins               (plugin download)
 #   3. the "crowdsec" Middleware in extraObjects
+#   4. volumes                             (bouncer key file; needs traefik-external/app/secret.yaml)
 # Uncommenting only #1 breaks every route on this instance (middleware missing).
+# The Middleware also uses CrowdSec AppSec (WAF) and fails closed: AppSec must be running too.
 # Two companions, also commented out (each is safe to uncomment on its own):
-#   4. deployment.initContainers          (wait for DNS before the plugin download)
-#   5. accessLog.fields                   (keep User-Agent for CrowdSec's bad-user-agent scenarios)
+#   5. deployment.initContainers          (wait for DNS before the plugin download)
+#   6. accessLog.fields                   (keep User-Agent for CrowdSec's bad-user-agent scenarios)
 # Also commented out, because a fresh cluster has no Prometheus Operator CRDs yet (the Traefik chart
 # refuses to render a ServiceMonitor without them); safe to uncomment once kube-prometheus-stack runs:
-#   6. metrics.prometheus.serviceMonitor
+#   7. metrics.prometheus.serviceMonitor
 #
 # Used as the bootstrap copy: clusters/<name>/kubernetes/networking/nginx-external/app/
 # (hidden from Flux by .sourceignore; the real traefik-external release takes over).
@@ -96,6 +98,11 @@ spec:
               # memory: 8Mi
             # limits:
               # memory: 32Mi
+    # # CrowdSec bouncer key for the crowdsec middleware (secret.yaml)
+    # volumes:
+      # - name: crowdsec-bouncer
+        # mountPath: /crowdsec
+        # type: secret
     podDisruptionBudget:
       enabled: true
       maxUnavailable: 1
@@ -204,13 +211,19 @@ spec:
               # crowdsecMode: stream
               # crowdsecLapiScheme: http
               # crowdsecLapiHost: crowdsec-service.crowdsec.svc.cluster.local:8080
-              # crowdsecLapiKey: ${CROWDSEC_BOUNCER_KEY}
+              # crowdsecLapiKeyFile: /crowdsec/lapi-key
               # # Take the client IP from X-Forwarded-For only when it comes from a pod (cloudflared)
               # forwardedHeadersTrustedIPs:
                 # - ${PODNET}
               # # Never block the LAN
               # clientTrustedIPs:
                 # - 192.168.1.0/24
+              # # WAF: every request is also checked by CrowdSec AppSec. Fails closed when AppSec
+              # # errors or is unreachable (it runs 2 replicas); bodies are inspected up to 10 MB.
+              # crowdsecAppsecEnabled: true
+              # crowdsecAppsecHost: crowdsec-appsec-service.crowdsec.svc.cluster.local:7422
+              # crowdsecAppsecFailureBlock: true
+              # crowdsecAppsecUnreachableBlock: true
 
     # Prometheus metrics (entrypoint "metrics", port 9100) on their own in-cluster Service,
     # scraped through a ServiceMonitor for the Traefik dashboard in Grafana
