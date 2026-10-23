@@ -1,0 +1,44 @@
+---
+# Holds the Proxmox API token: incoming only from Prometheus (scrape), outgoing only to the Proxmox API and DNS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-pve-exporter
+  namespace: prometheus-pve-exporter
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: prometheus-pve-exporter
+      app.kubernetes.io/name: prometheus-pve-exporter
+      pod.name: main
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-prometheus-stack
+      ports:
+        - protocol: TCP
+          port: 9221
+  egress:
+    # Proxmox VE API (same host as ext-prox)
+    - to:
+        - ipBlock:
+            cidr: 192.168.1.48/32
+      ports:
+        - protocol: TCP
+          port: 8006
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
