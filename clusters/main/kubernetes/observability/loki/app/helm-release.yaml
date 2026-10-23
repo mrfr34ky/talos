@@ -30,15 +30,6 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
-  valuesFrom:
-    - kind: Secret
-      name: loki-values
-      valuesKey: LOKI_S3_ACCESS_KEY_ID
-      targetPath: loki.storage.s3.accessKeyId
-    - kind: Secret
-      name: loki-values
-      valuesKey: LOKI_S3_SECRET_ACCESS_KEY
-      targetPath: loki.storage.s3.secretAccessKey
   values:
     # One Loki process does everything (enough for a single-node homelab)
     deploymentMode: SingleBinary
@@ -64,6 +55,10 @@ spec:
           admin: loki-ruler # only used by Grafana Enterprise Logs
         s3:
           endpoint: 192.168.1.49:30188
+          # Filled in by Loki itself from the env (-config.expand-env); $$ stops Flux substituting them,
+          # so the keys never land in the rendered ConfigMap
+          accessKeyId: $${LOKI_S3_ACCESS_KEY_ID}
+          secretAccessKey: $${LOKI_S3_SECRET_ACCESS_KEY}
           region: garage
           s3ForcePathStyle: true
           insecure: true
@@ -74,6 +69,11 @@ spec:
       limits_config:
         retention_period: 720h
     singleBinary:
+      extraArgs:
+        - -config.expand-env=true
+      extraEnvFrom:
+        - secretRef:
+            name: loki-values
       replicas: 1
       # Write-ahead log and index cache only (the logs themselves live in Garage).
       # Local path volume: no replication overhead on the node's disk.

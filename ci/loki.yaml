@@ -15,3 +15,6 @@ loki:
   compactor:
     retention_enabled: true
     delete_request_store: filesystem
+# The loki-values Secret (Garage keys as env vars) isn't deployed in CI
+singleBinary:
+  extraEnvFrom: []

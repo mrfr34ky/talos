@@ -74,8 +74,6 @@ dummyEnv:
   PAPERLESS_CNPG_PWD: dummy-password
   PAPERLESS_REDIS_PWD: dummyredispassword
   PLEX_TOKEN: dummy-plex-token
-  PRIVADO_USER: ci
-  PRIVADO_PWD: dummy-password
   PVE_USER: ci@pve
   PVE_TOKEN_NAME: ci
   PVE_TOKEN_VALUE: dummy-token
