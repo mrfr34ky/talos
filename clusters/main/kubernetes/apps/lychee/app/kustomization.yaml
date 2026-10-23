@@ -4,6 +4,7 @@ resources:
   - namespace.yaml
   - sync-credentials.yaml
   - helm-release.yaml
+  - uploads-ingress.yaml
   - secret.yaml
   - networkpolicy.yaml
 configMapGenerator:

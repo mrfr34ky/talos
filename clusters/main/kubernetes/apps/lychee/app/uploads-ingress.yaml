@@ -1,0 +1,29 @@
+---
+# Lychee serves /uploads/ (originals included) without a login; guests and share cards only get signed /image/
+# links. This longer-path route keeps /uploads/ LAN-only, so it is never reachable through the tunnel.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lychee-uploads-lan-only
+  namespace: lychee
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-external-lan-only@kubernetescrd
+spec:
+  ingressClassName: external
+  tls:
+    - hosts:
+        - memories.${DOMAIN_1}
+      secretName: lychee-app-template-tls-0
+  rules:
+    - host: memories.${DOMAIN_1}
+      http:
+        paths:
+          - path: /uploads
+            pathType: Prefix
+            backend:
+              service:
+                name: lychee-app-template
+                port:
+                  number: 8000

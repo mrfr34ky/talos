@@ -228,7 +228,7 @@ spec:
     ingress:
       main:
         enabled: true
-        ingressClassName: internal
+        ingressClassName: external
         integrations:
           traefik:
             enabled: true

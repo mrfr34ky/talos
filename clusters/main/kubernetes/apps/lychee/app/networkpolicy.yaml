@@ -105,7 +105,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: traefik-internal
+              kubernetes.io/metadata.name: traefik-external
         # Homarr's status ping
         - namespaceSelector:
             matchLabels:
