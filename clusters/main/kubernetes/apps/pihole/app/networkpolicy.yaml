@@ -57,3 +57,59 @@ spec:
       ports:
         - protocol: TCP
           port: 9617
+---
+# Pi-hole: outgoing only to Blocky (its upstream, via the LB IP), the router for conditional forwarding
+# (192.168.1.0/24), DNS and the public internet (gravity lists, NTP). No other LAN hosts, no other apps.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pihole-egress
+  namespace: pihole
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: pihole
+      app.kubernetes.io/name: pihole
+      pod.name: main
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: blocky
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - ipBlock:
+            cidr: 192.168.1.1/32
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Public internet only
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
