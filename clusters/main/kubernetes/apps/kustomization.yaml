@@ -1,44 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - cloudflared/ks.yaml
-  - pihole/ks.yaml
-  - homarr/ks.yaml
-  - frigate/ks.yaml
-  - mosquitto/ks.yaml
-  - ext-nas/ks.yaml
-  - ext-garage/ks.yaml
-  - ext-pikvm/ks.yaml
-  - ext-jetkvm/ks.yaml
-  - ext-prox/ks.yaml
-  - ext-slzb/ks.yaml
-  - ext-printer/ks.yaml
-  - prowlarr/ks.yaml
-  - radarr/ks.yaml
-  - sonarr/ks.yaml
-  - plex/ks.yaml
-  - ytptube/ks.yaml
-  - deemix/ks.yaml
-  - deemix2/ks.yaml
-  - syncthing/ks.yaml
-  - profilarr/ks.yaml
-  - tailscale/ks.yaml
-  - plex-auto-languages/ks.yaml
-  - sabnzbd/ks.yaml
-  - crowdsec/ks.yaml
-  - littlelink/ks.yaml
-  - gallery-dl/ks.yaml
-  #####################CNPG#########################
-  - nextcloud/ks.yaml
-  - mealie/ks.yaml
-  - home-assistant/ks.yaml
-  - guacamole/ks.yaml
-  - paperless-ngx/ks.yaml
-  - vaultwarden/ks.yaml
-  - authentik/ks.yaml
-  - tracearr/ks.yaml
-  - seerr/ks.yaml
-  - lychee/ks.yaml
-  #####################MARIADB######################
-  - wordpress/ks.yaml
-  
+  - media
+  - downloaders
+  - osint
+  - security
+  - home
+  - external

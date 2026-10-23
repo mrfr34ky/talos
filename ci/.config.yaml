@@ -101,12 +101,12 @@ skipList:
   - clusters/main/kubernetes/flux-system/flux-instance/app
   - clusters/main/kubernetes/flux-system/flux-operator/app
   # Need real external credentials to start
-  - clusters/main/kubernetes/apps/cloudflared/app
-  - clusters/main/kubernetes/apps/tailscale/app
+  - clusters/main/kubernetes/apps/security/cloudflared/app
+  - clusters/main/kubernetes/apps/security/tailscale/app
 
 # skipList entries whose updates are auto-merged anyway, untested (major updates stay manual)
 automergeUntested:
   - clusters/main/kubernetes/system/generic-device-plugin/app
   - clusters/main/kubernetes/system/system-upgrade/tuppr/app
-  - clusters/main/kubernetes/apps/cloudflared/app
-  - clusters/main/kubernetes/apps/tailscale/app
+  - clusters/main/kubernetes/apps/security/cloudflared/app
+  - clusters/main/kubernetes/apps/security/tailscale/app
