@@ -1,0 +1,46 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+# VolSync backups to B2 (ReplicationSources only; the -dest restore objects are ignored).
+# warning goes to Discord (alertmanagerconfig.yaml).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: volsync
+  namespace: kube-prometheus-stack
+spec:
+  groups:
+    - name: volsync
+      rules:
+        # VolSync deletes and retries failed movers, so the chart's KubeJobFailed never fires for them
+        - alert: VolSyncBackupFailing
+          expr: max by (namespace, job_name) (kube_job_status_failed{job_name=~"volsync-src-.*"}) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: VolSync backup {{ $labels.job_name }} is failing
+            description: >-
+              The backup job {{ $labels.job_name }} has had failed pods for 10 minutes and is still retrying.
+              Check the mover pod logs in {{ $labels.namespace }}.
+
+        - alert: VolSyncVolumeOutOfSync
+          expr: volsync_volume_out_of_sync{role="source"} == 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: VolSync backup {{ $labels.obj_name }} missed its schedule
+            description: >-
+              {{ $labels.obj_name }} in {{ $labels.obj_namespace }} has not completed a backup since its last
+              scheduled time, so B2 holds an older copy.
+
+        - alert: VolSyncMetricsAbsent
+          expr: absent(volsync_volume_out_of_sync{role="source"})
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: VolSync metrics are missing
+            description: >-
+              Prometheus has no VolSync backup metrics for 30 minutes (operator down or not scraped),
+              so failed backups would go unnoticed.

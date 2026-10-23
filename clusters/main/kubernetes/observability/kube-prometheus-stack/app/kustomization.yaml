@@ -10,6 +10,7 @@ resources:
   - prometheusrule-truenas.yaml
   - prometheusrule-proxmox.yaml
   - prometheusrule-gluetun.yaml
+  - prometheusrule-volsync.yaml
   - podmonitor-flux.yaml
   - temperatures-dashboard.yaml
   - apcupsd-exporter.yaml
