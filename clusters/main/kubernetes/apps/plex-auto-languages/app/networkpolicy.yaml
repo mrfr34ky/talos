@@ -1,0 +1,47 @@
+---
+# Holds the Plex token and has no service: no incoming traffic at all; outgoing only to Plex, DNS and the public
+# internet (plex.tv). The VolSync mover pods are not selected.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: plex-auto-languages
+  namespace: plex-auto-languages
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: plex-auto-languages
+      app.kubernetes.io/name: plex-auto-languages
+      pod.name: main
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: plex
+      ports:
+        - protocol: TCP
+          port: 32400
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Public internet only
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
