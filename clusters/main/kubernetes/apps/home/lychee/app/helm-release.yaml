@@ -184,6 +184,143 @@ spec:
             session.upload_progress.enabled = Off
             max_input_nesting_level = 10
             fatal_error_backtraces = Off
+      # Gallery theme, served as /dist/user.css and /dist/custom.js; the title is Lychee's site_title setting
+      theme:
+        enabled: true
+        data:
+          user.css: |
+            /* Memories theme (custom.js sets the mem-* body classes) */
+            body.mem-gallery, body.mem-timeline {
+              --mem-bg: #07080c;
+              --mem-text: #eeeef3;
+              --mem-muted: #b0b1bd;
+              --mem-accent: #35d8e6;
+              background: var(--mem-bg);
+              color: var(--mem-text);
+            }
+            body:is(.mem-gallery, .mem-timeline) #app { background: var(--mem-bg); }
+
+            /* Header: the site title (Lychee setting) as a small, spaced, centred brand line */
+            body:is(.mem-album-list, .mem-timeline) [data-pc-name="toolbar"] {
+              background: linear-gradient(110deg, rgba(53,216,230,.05), rgba(17,16,27,.94) 50%, rgba(192,77,255,.05)) !important;
+              border: 0 !important;
+            }
+            body.mem-album-list [data-pc-name="toolbar"] span.text-center.w-full {
+              color: #f7f3ea; font-size: .95rem; font-weight: 800;
+              letter-spacing: .16em; text-transform: uppercase;
+            }
+
+            /* Albums / Timeline / Featured Favorites */
+            .mem-explore {
+              display: flex; justify-content: center; gap: clamp(1rem, 4vw, 2.75rem);
+              padding: .4rem 1rem 0;
+              background: linear-gradient(110deg, rgba(53,216,230,.05), rgba(17,16,27,.94) 50%, rgba(192,77,255,.05));
+              border-bottom: 1px solid rgba(180,190,215,.12);
+            }
+            .mem-explore a {
+              padding: .8rem .25rem .7rem; color: #c5c6d0; font-size: .95rem; text-decoration: none;
+              border-bottom: 2px solid transparent; white-space: nowrap;
+            }
+            .mem-explore a:hover { color: #f3f3f7; }
+            .mem-explore a[aria-current="page"] { color: var(--mem-accent); border-bottom-color: var(--mem-accent); }
+
+            /* Album cards: vertical (Lychee setting 4/5), rounded, no tilted layers */
+            body.mem-gallery div:has(> a.album-thumb) {
+              justify-content: center !important; gap: 2rem !important; padding: 2rem clamp(1rem, 4vw, 3rem) !important;
+            }
+            body.mem-gallery a.album-thumb { width: clamp(200px, 17vw, 280px) !important; margin: 0 !important; transition: transform .2s ease; }
+            body.mem-gallery a.album-thumb .thumbimg {
+              border: 1px solid rgba(190,195,220,.14) !important; border-radius: 16px !important; overflow: hidden !important;
+              box-shadow: 0 8px 24px rgba(0,0,0,.3) !important;
+              transform: none !important; rotate: 0deg !important; translate: 0 0 !important; scale: 1 !important;
+            }
+            body.mem-gallery a.album-thumb .thumbimg img { border-radius: 15px !important; }
+            body.mem-gallery a.album-thumb .overlay {
+              border-radius: 0 0 16px 16px !important;
+              background: linear-gradient(180deg, transparent, rgba(0,0,0,.15) 30%, rgba(0,0,0,.85)) !important;
+            }
+            body.mem-gallery a.album-thumb .overlay h1 {
+              color: #faf8f4 !important; font-weight: 700 !important; white-space: normal !important;
+              text-shadow: 0 1px 5px rgba(0,0,0,.85) !important;
+            }
+            @media (hover: hover) and (pointer: fine) {
+              body.mem-gallery a.album-thumb:hover { transform: translateY(-3px); }
+              body.mem-gallery a.album-thumb:hover .thumbimg { border-color: rgba(53,216,230,.45) !important; }
+            }
+            @media (max-width: 720px) {
+              body.mem-gallery div:has(> a.album-thumb) { gap: 1rem !important; padding: 1rem !important; }
+              body.mem-gallery a.album-thumb { width: calc(50% - .5rem) !important; }
+              .mem-explore { gap: 1.25rem; }
+              .mem-explore a { font-size: .85rem; }
+            }
+          custom.js: |
+            // Memories theme: page classes for user.css and the Albums / Timeline / Featured Favorites row.
+            // No template literals: Flux would substitute dollar-brace expressions in this file.
+            // Timeline: while a photo is open (/timeline/<date>/<photo>), ignore the date sections' visibility
+            // changes, or Lychee jumps back to the date and closes the photo.
+            (function () {
+              var Native = window.IntersectionObserver;
+              if (!Native || window.memTimelineGuard) return;
+              window.memTimelineGuard = true;
+              window.IntersectionObserver = class extends Native {
+                constructor(callback, options) {
+                  super(function (entries, observer) {
+                    var photoOpen = /^\/timeline\/[^/]+\/[^/]+\/?$/.test(location.pathname);
+                    var keep = photoOpen ? entries.filter(function (e) { return !e.target.hasAttribute('data-date'); }) : entries;
+                    if (keep.length) callback(keep, observer);
+                  }, options);
+                }
+              };
+            })();
+
+            (function () {
+              var LINKS = [
+                ['Albums', '/gallery'],
+                ['Timeline', '/timeline'],
+                ['Featured Favorites', '/gallery/highlighted']
+              ];
+
+              function update() {
+                var path = location.pathname.replace(/\/+$/, '') || '/';
+                var albumList = path === '/gallery';
+                // Any timeline page, incl. an open photo: removing the row would shift the page under the viewer
+                var timeline = path === '/timeline' || path.indexOf('/timeline/') === 0;
+                var body = document.body;
+                body.classList.toggle('mem-gallery', path.indexOf('/gallery') === 0);
+                body.classList.toggle('mem-album-list', albumList);
+                body.classList.toggle('mem-timeline', timeline);
+
+                var nav = document.querySelector('.mem-explore');
+                if (!albumList && !timeline) { if (nav) nav.remove(); return; }
+                var toolbar = document.querySelector('[data-pc-name="toolbar"]');
+                if (!toolbar) return;
+                var current = timeline ? '/timeline' : '/gallery';
+                if (!nav) {
+                  nav = document.createElement('nav');
+                  nav.className = 'mem-explore';
+                  nav.setAttribute('aria-label', 'Browse photos');
+                  LINKS.forEach(function (l) {
+                    var a = document.createElement('a');
+                    a.textContent = l[0];
+                    a.href = l[1];
+                    nav.append(a);
+                  });
+                  toolbar.after(nav);
+                }
+                nav.querySelectorAll('a').forEach(function (a) {
+                  if (a.getAttribute('href') === current) a.setAttribute('aria-current', 'page');
+                  else a.removeAttribute('aria-current');
+                });
+              }
+
+              var scheduled = false;
+              new MutationObserver(function () {
+                if (scheduled) return;
+                scheduled = true;
+                requestAnimationFrame(function () { scheduled = false; update(); });
+              }).observe(document.body, { childList: true, subtree: true });
+              update();
+            })();
     persistence:
       php-hardening:
         enabled: true
@@ -191,6 +328,20 @@ spec:
         objectName: php-hardening
         mountPath: /usr/local/etc/php/conf.d/zz-php-hardening.ini
         subPath: zz-php-hardening.ini
+        readOnly: true
+      theme-user:
+        enabled: true
+        type: configmap
+        objectName: theme
+        mountPath: /app/public/dist/user.css
+        subPath: user.css
+        readOnly: true
+      theme-custom:
+        enabled: true
+        type: configmap
+        objectName: theme
+        mountPath: /app/public/dist/custom.js
+        subPath: custom.js
         readOnly: true
       uploads:
         enabled: true
