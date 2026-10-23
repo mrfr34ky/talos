@@ -28,6 +28,7 @@ $cfg = [
     'tmp'       => sys_get_temp_dir(),
 ];
 const MAX_ATTEMPTS = 3;
+const SKIP_ALBUM = '#skip'; // private sub-album for photos tagged #skip (guests never see it)
 $started = time();
 
 class SkipFile extends RuntimeException {} // not retried: too big or not a recognised media file
@@ -400,8 +401,24 @@ function record(int $fileid, string $path, string $status, ?string $photo, ?stri
         ->execute([$fileid, $path, $status, $photo, $status === 'failed' ? 1 : 0, $error, $href]);
 }
 
+// --- album tree (regular albums; tag/smart albums have no parent): id -> [parent, title, description, nsfw] ---
+$albums = [];
+foreach ($pdo->query('select a.id, a.parent_id, b.title, b.description, b.is_nsfw
+                      from albums a join base_albums b on b.id = a.id') as $r)
+    $albums[$r['id']] = [$r['parent_id'], (string)$r['title'], (string)$r['description'], (bool)$r['is_nsfw']];
+$kids = []; // parent id -> [child ids]
+foreach ($albums as $id => $a) if ($a[0] !== null) $kids[$a[0]][] = $id;
+
+// #keep counts on the album itself or on any album above it
+function kept(array $albums, string $id, string $desc): bool {
+    if (preg_match('/^\s*#keep\b/i', $desc)) return true;
+    for ($i = $albums[$id][0] ?? null; $i !== null && isset($albums[$i]); $i = $albums[$i][0])
+        if (preg_match('/^\s*#keep\b/i', $albums[$i][2])) return true;
+    return false;
+}
+
 // --- expiring shares: public albums go private SHARE_HOURS after they were shared, unless the
-// album description starts with #keep. Lychee stores share times in UTC.
+// album or a parent album description starts with #keep. Lychee stores share times in UTC.
 $expire = $pdo->prepare("select b.id, b.title, b.description, b.is_nsfw, p.is_link_required, p.grants_download,
         p.grants_full_photo_access, p.created_at
     from access_permissions p join base_albums b on b.id = p.base_album_id
@@ -409,7 +426,7 @@ $expire = $pdo->prepare("select b.id, b.title, b.description, b.is_nsfw, p.is_li
       and p.created_at < (now() at time zone 'UTC') - make_interval(hours => ?)");
 $expire->execute([$cfg['share_hours']]);
 foreach ($expire->fetchAll(PDO::FETCH_ASSOC) as $a) {
-    if (preg_match('/^\s*#keep\b/i', (string)$a['description'])) continue;
+    if (kept($albums, $a['id'], (string)$a['description'])) continue;
     if ($cfg['dry']) { logm("would end share: \"{$a['title']}\" (shared {$a['created_at']} UTC)"); continue; }
     try {
         ly('POST', 'Album::updateProtectionPolicy', [
@@ -422,6 +439,79 @@ foreach ($expire->fetchAll(PDO::FETCH_ASSOC) as $a) {
         throw $e;
     } catch (Throwable $e) {
         logm("ending share \"{$a['title']}\": " . $e->getMessage());
+    }
+}
+
+// --- inherited shares: sub-albums of a public album get the same share and share time (so they expire with it),
+// except #skip albums and what is below them. A sub-album that already has its own share keeps it.
+$shares = []; // album id -> public share
+foreach ($pdo->query('select base_album_id, is_link_required, grants_download, grants_full_photo_access, created_at
+                      from access_permissions where user_id is null and user_group_id is null') as $r)
+    $shares[$r['base_album_id']] = $r;
+$queue = array_keys(array_intersect_key($shares, $albums));
+$seen = [];
+while ($queue) {
+    $id = array_shift($queue);
+    foreach ($kids[$id] ?? [] as $kid) {
+        if (isset($seen[$kid]) || $albums[$kid][1] === SKIP_ALBUM) continue;
+        $seen[$kid] = true;
+        if (!isset($shares[$kid])) {
+            $s = $shares[$id];
+            if ($cfg['dry']) {
+                logm("would share \"{$albums[$kid][1]}\" (inherited from \"{$albums[$id][1]}\")");
+            } else {
+                try {
+                    ly('POST', 'Album::updateProtectionPolicy', [
+                        'album_id' => $kid, 'is_public' => true, 'is_link_required' => (bool)$s['is_link_required'],
+                        'is_nsfw' => $albums[$kid][3], 'grants_download' => (bool)$s['grants_download'],
+                        'grants_full_photo_access' => (bool)$s['grants_full_photo_access'], 'grants_upload' => false,
+                    ]);
+                    $pdo->prepare('update access_permissions set created_at = ?
+                                   where base_album_id = ? and user_id is null and user_group_id is null')
+                        ->execute([$s['created_at'], $kid]);
+                    logm("shared \"{$albums[$kid][1]}\" (inherited from \"{$albums[$id][1]}\")");
+                } catch (ServiceUnavailable $e) {
+                    throw $e;
+                } catch (Throwable $e) {
+                    logm("sharing \"{$albums[$kid][1]}\": " . $e->getMessage());
+                    continue;
+                }
+            }
+            $shares[$kid] = $s;
+        }
+        $queue[] = $kid;
+    }
+}
+
+// --- #skip: photos tagged #skip (or skip) move into a private "#skip" sub-album of their album, so guests of a
+// shared album don't see them; without the tag they move back to the album above it.
+function skip_album(array &$albums, array &$kids, string $parent): string {
+    foreach ($kids[$parent] ?? [] as $kid) if ($albums[$kid][1] === SKIP_ALBUM) return $kid;
+    $id = trim((string)ly('POST', 'Album', ['title' => SKIP_ALBUM, 'parent_id' => $parent]), " \"\n");
+    $albums[$id] = [$parent, SKIP_ALBUM, '', false];
+    $kids[$parent][] = $id;
+    return $id;
+}
+$skipTagged = [];
+foreach ($pdo->query("select pt.photo_id from photos_tags pt join tags t on t.id = pt.tag_id
+                      where lower(t.name) in ('#skip', 'skip')") as $r)
+    $skipTagged[$r['photo_id']] = true;
+foreach ($pdo->query('select photo_id, album_id from photo_album')->fetchAll(PDO::FETCH_ASSOC) as $r) {
+    [$photo, $from] = [$r['photo_id'], $r['album_id']];
+    if (!isset($albums[$from])) continue;
+    $inSkip = $albums[$from][1] === SKIP_ALBUM;
+    if (isset($skipTagged[$photo]) === $inSkip) continue;              // already where it belongs
+    if ($inSkip && $albums[$from][0] === null) continue;                 // a top-level "#skip" album: leave it
+    $label = $inSkip ? "back to \"{$albums[$albums[$from][0]][1]}\"" : "into \"{$albums[$from][1]}/" . SKIP_ALBUM . '"';
+    if ($cfg['dry']) { logm("would move photo $photo $label"); continue; }
+    try {
+        $to = $inSkip ? $albums[$from][0] : skip_album($albums, $kids, $from);
+        ly('POST', 'Photo::move', ['photo_ids' => [$photo], 'album_id' => $to, 'from_id' => $from]);
+        logm("moved photo $photo $label");
+    } catch (ServiceUnavailable $e) {
+        throw $e;
+    } catch (Throwable $e) {
+        logm("moving photo $photo: " . $e->getMessage());
     }
 }
 
