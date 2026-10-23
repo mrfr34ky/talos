@@ -25,3 +25,45 @@ spec:
           port: 3100
     - from:
         - podSelector: {}
+---
+# Outgoing only to Garage S3 on the NAS (chunks, index, ruler), its own memberlist and DNS
+# (no internet: usage-stats reporting just fails quietly)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: loki-egress
+  namespace: loki
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: loki
+      app.kubernetes.io/name: loki
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 192.168.1.49/32
+      ports:
+        - protocol: TCP
+          port: 30188
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: loki
+              app.kubernetes.io/name: loki
+      ports:
+        - protocol: TCP
+          port: 7946
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
