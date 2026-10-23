@@ -77,3 +77,59 @@ spec:
       ports:
         - protocol: TCP
           port: 12321
+---
+# HA + code-server: LAN devices, multicast/broadcast and the internet stay open; inside the cluster only its own
+# Postgres, Mosquitto and Frigate (no Kubernetes API, no other apps)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: home-assistant-egress
+  namespace: home-assistant
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: home-assistant
+      app.kubernetes.io/name: home-assistant
+      pod.name: main
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: home-assistant-cnpg-main
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: mosquitto
+      ports:
+        - protocol: TCP
+          port: 1883
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: frigate
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # LAN, multicast/broadcast and internet; not the pod/service networks
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 100.64.0.0/10
+              - 169.254.0.0/16
