@@ -47,7 +47,7 @@ spec:
               --button-border-style: none;
             }
             body {
-              background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url("https://raw.githubusercontent.com/b-a-l-a-z-s/assets/main/background.jpg") center / cover fixed;
+              background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url("https://picsum.photos/1920/1080") center / cover fixed;
             }
     persistence:
       theme:
@@ -73,7 +73,15 @@ spec:
                 AVATAR_ALT: ${LITTLELINK_NAME}
                 NAME: ${LITTLELINK_NAME}
                 BIO: ${LITTLELINK_BIO}
-                BUTTON_ORDER: FACEBOOK,INSTAGRAM,LINKED_IN,YOUTUBE,STRAVA,GITHUB
+                BUTTON_ORDER: FACEBOOK,INSTAGRAM,MEMORIES,LINKED_IN,YOUTUBE,STRAVA,GITHUB
+                # Lychee
+                CUSTOM_BUTTON_NAME: MEMORIES
+                CUSTOM_BUTTON_TEXT: Memories
+                CUSTOM_BUTTON_URL: https://memories.${DOMAIN_1}
+                CUSTOM_BUTTON_COLOR: "#2293EC"
+                CUSTOM_BUTTON_TEXT_COLOR: "#FFFFFF"
+                CUSTOM_BUTTON_ALT_TEXT: Memories photo gallery
+                CUSTOM_BUTTON_ICON: fas fa-images
                 GITHUB: https://github.com/b-a-l-a-z-s
                 #PIXELFED: ${LITTLELINK_PIXELFED}
                 INSTAGRAM: ${LITTLELINK_INSTAGRAM}
