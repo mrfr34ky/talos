@@ -358,6 +358,11 @@ try {
 } catch (PDOException $e) {
     throw new ServiceUnavailable('database: ' . $e->getMessage());
 }
+// One run at a time (scheduled and manual jobs alike); the lock goes with the connection when the run ends
+if (!$pdo->query("select pg_try_advisory_lock(hashtext('lychee-sync'))")->fetchColumn()) {
+    logm('another sync is running, skipping this run');
+    exit(0);
+}
 $hasSchema = (bool)$pdo->query("select 1 from information_schema.tables where table_schema='ncsync' and table_name='files'")->fetchColumn();
 if (!$hasSchema && !$cfg['dry']) {
     $pdo->exec('CREATE SCHEMA IF NOT EXISTS ncsync');
