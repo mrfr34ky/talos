@@ -417,6 +417,14 @@ function kept(array $albums, string $id, string $desc): bool {
     return false;
 }
 
+// #skip: the "#skip" sub-album or a description starting with #skip, on the album itself or any album above it
+function skip_marked(array $a): bool { return $a[1] === SKIP_ALBUM || (bool)preg_match('/^\s*#skip\b/i', $a[2]); }
+function skipped(array $albums, string $id): bool {
+    for ($i = $id; $i !== null && isset($albums[$i]); $i = $albums[$i][0])
+        if (skip_marked($albums[$i])) return true;
+    return false;
+}
+
 // --- expiring shares: public albums go private SHARE_HOURS after they were shared, unless the
 // album or a parent album description starts with #keep. Lychee stores share times in UTC.
 $expire = $pdo->prepare("select b.id, b.title, b.description, b.is_nsfw, p.is_link_required, p.grants_download,
@@ -448,12 +456,30 @@ $shares = []; // album id -> public share
 foreach ($pdo->query('select base_album_id, is_link_required, grants_download, grants_full_photo_access, created_at
                       from access_permissions where user_id is null and user_group_id is null') as $r)
     $shares[$r['base_album_id']] = $r;
+// #skip albums and what is below them are never public
+foreach ($shares as $id => $s) {
+    if (!isset($albums[$id]) || !skipped($albums, $id)) continue;
+    if ($cfg['dry']) { logm("would end share: \"{$albums[$id][1]}\" (#skip)"); continue; }
+    try {
+        ly('POST', 'Album::updateProtectionPolicy', [
+            'album_id' => $id, 'is_public' => false, 'is_link_required' => (bool)$s['is_link_required'],
+            'is_nsfw' => $albums[$id][3], 'grants_download' => (bool)$s['grants_download'],
+            'grants_full_photo_access' => (bool)$s['grants_full_photo_access'], 'grants_upload' => false,
+        ]);
+        unset($shares[$id]);
+        logm("share ended: \"{$albums[$id][1]}\" (#skip)");
+    } catch (ServiceUnavailable $e) {
+        throw $e;
+    } catch (Throwable $e) {
+        logm("ending share \"{$albums[$id][1]}\": " . $e->getMessage());
+    }
+}
 $queue = array_keys(array_intersect_key($shares, $albums));
 $seen = [];
 while ($queue) {
     $id = array_shift($queue);
     foreach ($kids[$id] ?? [] as $kid) {
-        if (isset($seen[$kid]) || $albums[$kid][1] === SKIP_ALBUM) continue;
+        if (isset($seen[$kid]) || skip_marked($albums[$kid])) continue;
         $seen[$kid] = true;
         if (!isset($shares[$kid])) {
             $s = $shares[$id];
