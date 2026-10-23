@@ -30,6 +30,17 @@ spec:
       retries: 3
   uninstall:
     keepHistory: false
+  # No immediate retry: a second pass would query Instagram again; the next run is tomorrow.
+  # Set here because the chart template turns backoffLimit 0 into 5.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: CronJob
+            patch: |
+              - op: replace
+                path: /spec/jobTemplate/spec/backoffLimit
+                value: 0
   values:
     TZ: Europe/Brussels
     image:
@@ -51,6 +62,7 @@ spec:
       main:
         type: CronJob
         schedule: "30 6 * * *"
+        # Overridden to 0 by spec.postRenderers (the chart turns 0 into its default 5)
         backoffLimit: 1
         activeDeadlineSeconds: 14400
         podSpec:
