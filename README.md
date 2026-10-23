@@ -106,7 +106,7 @@ Namespaces alone don't stop pods from reaching each other, so the apps get a `ne
 
 - **Incoming:** public apps only accept `traefik-external`, and internal apps behind Authentik only accept `traefik-internal` (plus Homarr's status checks and Prometheus scrapes), so nothing can skip the login; databases and Redis only accept their own app
 - **Outgoing:** apps that handle untrusted content (downloads, recipe imports, e-mail) reach DNS, their own database and the internet, but not the LAN or the rest of the cluster
-- A few CiliumNetworkPolicies allow kube API access, which a plain ipBlock can't match (Tailscale, Headlamp, Kubernetes Dashboard)
+- A few CiliumNetworkPolicies allow kube API access, which a plain ipBlock can't match (Tailscale, Headlamp)
 - Each policy was mapped with Hubble before it was written, then tested from a pod without a policy of its own
 
 ---
