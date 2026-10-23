@@ -38,6 +38,12 @@ spec:
           - name: severity
             value: info|none
             matchType: =~
+      # VolSync backup alerts (prometheusrule-volsync.yaml) go to their own Discord channel
+      - receiver: discord-volsync
+        matchers:
+          - name: alertname
+            value: VolSync.*
+            matchType: =~
   inhibitRules:
     - sourceMatch:
         - name: severity
@@ -99,6 +105,22 @@ spec:
         - apiURL:
             name: alertmanager-secret
             key: DISCORD_WEBHOOK_URL
+          sendResolved: true
+          username: Alertmanager
+          title: >-
+            [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}]
+            {{ .CommonLabels.alertname }}
+          message: |-
+            {{- range .Alerts }}
+            **{{ if eq .Status "firing" }}🔥{{ else }}✅{{ end }} {{ .Labels.alertname }}**{{ with .Labels.namespace }} · `{{ . }}`{{ end }}{{ with .Labels.severity }} · {{ . }}{{ end }}
+            {{ with .Annotations.description }}{{ . }}{{ else }}{{ with .Annotations.summary }}{{ . }}{{ else }}{{ with .Annotations.message }}{{ . }}{{ else }}No description{{ end }}{{ end }}{{ end }}
+            {{ end }}
+    # Same format as discord, other webhook
+    - name: discord-volsync
+      discordConfigs:
+        - apiURL:
+            name: alertmanager-secret
+            key: DISCORD_VOLSYNC_WEBHOOK_URL
           sendResolved: true
           username: Alertmanager
           title: >-
