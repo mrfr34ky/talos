@@ -10,6 +10,8 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
     traefik.ingress.kubernetes.io/router.middlewares: traefik-external-lan-only@kubernetescrd
+    # Gatus checks through Cloudflare, where this route always answers 403 by design
+    gatus.home-operations.com/enabled: "false"
 spec:
   ingressClassName: external
   tls:
