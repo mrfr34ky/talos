@@ -36,6 +36,12 @@ spec:
         forceConflicts: true
     cleanPrometheusOperatorObjectNames: true
 
+    # 30-day API server SLO recording rules: ~150 s per run here, times out (PrometheusRuleFailures).
+    # The burn-rate alerts use their own group and stay on.
+    defaultRules:
+      rules:
+        kubeApiserverAvailability: false
+
     # Needed for the Alerts badge (alertmanager_alerts) and the Watchdog heartbeat.
     # Alerts go to Discord and the Watchdog to healthchecks.io: see app/alertmanagerconfig.yaml.
     alertmanager:
